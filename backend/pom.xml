@@ -79,6 +79,13 @@
             <optional>true</optional>
         </dependency>
 
+
+        <!-- Security: BCryptPasswordEncoder for password hashing. Full JWT auth comes later. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
     </dependencies>
 
 
