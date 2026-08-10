@@ -1,15 +1,16 @@
 # Back2Kasi Engineering Log
 
-> **Last Updated:** 2026-08-02 | **Current Sprint:** Sprint 2 – Core User Layer
+> **Last Updated:** 2026-08-10 | **Current Sprint:** Sprint 3 – Business Management
 
 ---
 
 ## Sprint Index
 
-| Sprint | Focus | Status |
-|--------|-------|--------|
-| [Sprint 1 – Foundation](#sprint-1--foundation) | Project Init, Backend Setup, Domain Modelling | ✅ Complete |
-| [Sprint 2 – Core User Layer](#sprint-2--core-user-layer) | Repository, DI, Service Layer, User Registration | ✅ Complete |
+| Sprint | Focus | Status | Log |
+|--------|-------|--------|-----|
+| Sprint 1 – Foundation | Project Init, Backend Setup, Domain Modelling, User Registration | ✅ Complete | [Sprint-01-Foundation.md](Engineering-Logs/Sprint-01-Foundation.md) |
+| Sprint 2 – Authentication | JWT Login, Spring Security Filter Chain | ✅ Complete | [Sprint-02-Authentication.md](Engineering-Logs/Sprint-02-Authentication.md) |
+| Sprint 3 – Business Management | Business entity, ownership model, rental unit types | 🔲 In Progress | — |
 
 ---
 
@@ -480,25 +481,27 @@ User rows confirmed in **pgAdmin** with BCrypt-hashed passwords (`$2a$10$...`) �
 #### ✅ Completed
 - `UserRepository` implementation
 - Dependency Injection concepts learned
-- `UserService` skeleton created
 - `RegisterRequest` DTO with Bean Validation
 - Spring Security + `BCryptPasswordEncoder`
-- `SecurityConfig` (all endpoints open for MVP)
-- `UserService.register()` business logic
-- `UserController` — `POST /api/users/register`
-- `GlobalExceptionHandler` — `409` and `400` responses
-- End-to-end verification (all 3 test cases passed)
+- `SecurityConfig` (JWT filter chain, route rules)
+- `UserService.register()` + `UserService.login()` business logic
+- `UserController` — `POST /api/users/register` + `POST /api/users/login`
+- `GlobalExceptionHandler` — `409`, `400`, `401` responses
+- JWT authentication (login returns a signed token)
+- `JwtService`, `JwtAuthenticationFilter`, `UserDetails` wiring
+- 19 tests passing (unit + MVC slice)
 - Pushed to GitHub
 
-**Sprint 2 is complete. First real feature is live and verified.**
+**Sprint 2 is complete.**
 
-#### 🔲 Next Steps (Sprint 3)
-1. Implement JWT authentication (login returns a token)
-2. Create `LoginRequest` DTO
-3. Implement `UserService.login()`
-4. Create `/api/users/login` endpoint
-5. Protect routes with JWT filter
-6. Return user details in login response
+> Detailed design decisions and implementation notes are recorded in
+> [Engineering-Logs/Sprint-02-Authentication.md](Engineering-Logs/Sprint-02-Authentication.md)
+
+#### 🔲 Next (Sprint 3 – Business Management)
+- Design the `Business` entity and `User → Business` ownership relationship
+- Answer product questions: multiple businesses per user? multiple rental types per business?
+- Implement CRUD for businesses (owner-only operations)
+- Protect business routes with JWT
 
 ---
 
