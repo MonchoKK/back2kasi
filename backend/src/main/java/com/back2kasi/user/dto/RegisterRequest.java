@@ -2,6 +2,7 @@ package com.back2kasi.user.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 
@@ -38,9 +39,20 @@ public class RegisterRequest {
      * It is never persisted in plain text.
      */
     @NotBlank(message = "Password is required")
-    @Size(min = 8, message = "Password must be at least 8 characters")
+    @Size(min = 7, message = "Password must be at least 7 characters")
     private String password;
 
+    /**
+     * Must be a South African phone number in international format.
+     *
+     * <p>Accepted format: {@code +27} followed by exactly 9 digits,
+     * e.g. {@code +27712345678}. This covers all SA mobile (06x, 07x, 08x)
+     * and landline numbers expressed in international format.</p>
+     */
     @NotBlank(message = "Phone number is required")
+    @Pattern(
+            regexp = "^\\+27[0-9]{9}$",
+            message = "Phone number must be a valid South African number in +27 format (e.g. +27712345678)"
+    )
     private String phoneNumber;
 }
