@@ -4,8 +4,13 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Represents a registered user on the Back2Kasi platform.
@@ -20,6 +25,11 @@ import java.time.LocalDateTime;
  * </pre>
  * <p>A user who owns one or more businesses is effectively a business owner;
  * a user who owns none is effectively a customer. Both are the same entity.</p>
+ *
+ * <p>This entity implements {@link UserDetails} so that Spring Security can use it
+ * directly. {@link #getUsername()} returns the email (our unique login identity),
+ * and {@link #getAuthorities()} maps the {@link Role} enum to Spring's
+ * {@code ROLE_} convention (e.g. {@code ROLE_USER}).</p>
  */
 @Entity
 @Table(name = "users")
@@ -28,7 +38,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User {
+public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -65,4 +75,38 @@ public class User {
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    // =========================================================
+    // UserDetails implementation
+    // =========================================================
+
+    /**
+     * Returns the authorities granted to the user.
+     *
+     * <p>Spring Security's convention is to prefix role names with {@code ROLE_}.
+     * So {@link Role#USER} becomes {@code ROLE_USER}, and a controller annotated
+     * with {@code @PreAuthorize("hasRole('USER')")} will accept this token.</p>
+     */
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+    }
+
+    /**
+     * The username in Spring Security's terms is our email address —
+     * the unique identifier we use to look up and authenticate users.
+     */
+    @Override
+    public String getUsername() {
+        return email;
+    }
+
+    // The four boolean flags below return true for now.
+    // Account-locking, credential-expiry, and suspension logic will be
+    // introduced in a future sprint if business rules require it.
+
+    @Override public boolean isAccountNonExpired()     { return true; }
+    @Override public boolean isAccountNonLocked()      { return true; }
+    @Override public boolean isCredentialsNonExpired() { return true; }
+    @Override public boolean isEnabled()               { return true; }
 }

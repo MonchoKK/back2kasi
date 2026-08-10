@@ -1,44 +1,88 @@
 package com.back2kasi.config;
 
+import com.back2kasi.auth.filter.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
  * Security configuration for the Back2Kasi platform.
  *
- * <p><strong>Current state (MVP — no JWT yet):</strong><br>
- * All endpoints are permitted without authentication. Spring Security is present
- * only for {@link BCryptPasswordEncoder} — it is not yet enforcing access control.</p>
+ * <h2>How Spring Security's filter chain works</h2>
+ * <p>Every HTTP request passes through an ordered chain of filters before reaching
+ * a controller. This class configures that chain. Key decisions:</p>
  *
- * <p><strong>Next phase:</strong><br>
- * This class will be updated to require a valid JWT token on all protected routes
- * once JWT authentication is implemented.</p>
+ * <ul>
+ *   <li><strong>Stateless sessions</strong> — JWTs carry all auth state.
+ *       The server never creates an HTTP session ({@link SessionCreationPolicy#STATELESS}).
+ *       This is mandatory for mobile / Flutter apps.</li>
+ *   <li><strong>CSRF disabled</strong> — CSRF attacks rely on browser cookies.
+ *       Because we use JWT in the {@code Authorization} header (not cookies), CSRF is not
+ *       a threat and disabling it avoids unnecessary complexity.</li>
+ *   <li><strong>Public routes</strong> — {@code /register} and {@code /login} are
+ *       open to the world (no token required). Everything else is protected.</li>
+ *   <li><strong>JWT filter placement</strong> — {@link JwtAuthenticationFilter} runs
+ *       <em>before</em> Spring's own {@link UsernamePasswordAuthenticationFilter}
+ *       so that token-authenticated requests are recognised first.</li>
+ * </ul>
  */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     /**
-     * Permit all requests during MVP development.
+     * The main security filter chain.
      *
-     * <p>Spring Security's default behaviour locks every endpoint behind HTTP Basic auth.
-     * This filter chain overrides that default and opens everything up temporarily,
-     * so Postman testing and local development work without credentials.</p>
+     * <p>The {@link JwtAuthenticationFilter} is injected as a method parameter
+     * (not a class field) to avoid constructor-injection cycles. Spring resolves
+     * the bean and passes it here at startup.</p>
      */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+
         http
+                // Disable CSRF — not needed with JWT in Authorization header
                 .csrf(AbstractHttpConfigurer::disable)
+
+                // Stateless: no HTTP session, no cookies — JWT is the entire auth state
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // Route-level access rules
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll()
-                );
+                        // Public: anyone can register or log in
+                        .requestMatchers("/api/users/register", "/api/users/login").permitAll()
+                        // Everything else requires a valid JWT
+                        .anyRequest().authenticated()
+                )
+
+                // Insert our JWT filter before Spring's built-in username/password filter
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
+    }
+
+    /**
+     * Expose Spring's {@link AuthenticationManager} as a bean.
+     *
+     * <p>Not used directly in this phase, but required by Spring Security's
+     * auto-configuration and needed in future if we wire form-based login or OAuth.</p>
+     */
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
+            throws Exception {
+        return config.getAuthenticationManager();
     }
 
     /**
@@ -47,9 +91,6 @@ public class SecurityConfig {
      * <p>BCrypt is the industry standard for password storage. It is adaptive
      * (work factor can be increased over time) and automatically salts each hash,
      * making rainbow-table and brute-force attacks impractical.</p>
-     *
-     * <p>Declaring this as a {@code @Bean} means Spring can inject it anywhere
-     * in the application — currently into {@code UserService}.</p>
      */
     @Bean
     public PasswordEncoder passwordEncoder() {

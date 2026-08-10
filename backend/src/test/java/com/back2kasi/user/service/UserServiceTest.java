@@ -1,5 +1,8 @@
 package com.back2kasi.user.service;
 
+import com.back2kasi.auth.dto.AuthResponse;
+import com.back2kasi.auth.dto.LoginRequest;
+import com.back2kasi.auth.service.JwtService;
 import com.back2kasi.user.dto.RegisterRequest;
 import com.back2kasi.user.entity.Role;
 import com.back2kasi.user.entity.User;
@@ -10,6 +13,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,6 +48,9 @@ class UserServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private JwtService jwtService;
 
     // --- Subject under test (gets the mocks injected automatically) ---
 
@@ -126,6 +133,88 @@ class UserServiceTest {
     }
 
     // =========================================================
+    // Login — happy path
+    // =========================================================
+
+    /**
+     * When valid credentials are submitted:
+     * <ol>
+     *   <li>The user is found by email.</li>
+     *   <li>BCrypt comparison succeeds.</li>
+     *   <li>A token is generated and returned inside an {@link AuthResponse}.</li>
+     * </ol>
+     */
+    @Test
+    void login_returnsAuthResponse_whenCredentialsAreValid() {
+        // --- ARRANGE ---
+        LoginRequest request = buildLoginRequest("kabelo@back2kasi.co.za", "secret123");
+
+        User storedUser = User.builder()
+                .id(1L)
+                .email("kabelo@back2kasi.co.za")
+                .password("hashed_secret123")
+                .role(Role.USER)
+                .build();
+
+        when(userRepository.findByEmail(request.getEmail())).thenReturn(java.util.Optional.of(storedUser));
+        when(passwordEncoder.matches(request.getPassword(), storedUser.getPassword())).thenReturn(true);
+        when(jwtService.generateToken(storedUser)).thenReturn("generated.jwt.token");
+        when(jwtService.getExpirationSeconds()).thenReturn(86_400L);
+
+        // --- ACT ---
+        AuthResponse response = userService.login(request);
+
+        // --- ASSERT ---
+        assertThat(response.getToken()).isEqualTo("generated.jwt.token");
+        assertThat(response.getTokenType()).isEqualTo("Bearer");
+        assertThat(response.getExpiresIn()).isEqualTo(86_400L);
+    }
+
+    // =========================================================
+    // Login — error cases
+    // =========================================================
+
+    /**
+     * When the email does not exist in the database, login must throw
+     * {@link BadCredentialsException} with a generic message.
+     *
+     * <p>The same exception type is used for both bad-email and bad-password so that
+     * the API never reveals which field was wrong (enumeration attack prevention).</p>
+     */
+    @Test
+    void login_throwsBadCredentialsException_whenEmailNotFound() {
+        LoginRequest request = buildLoginRequest("nobody@back2kasi.co.za", "secret123");
+
+        when(userRepository.findByEmail(request.getEmail())).thenReturn(java.util.Optional.empty());
+
+        assertThatThrownBy(() -> userService.login(request))
+                .isInstanceOf(BadCredentialsException.class);
+    }
+
+    /**
+     * When the email exists but the password does not match the stored hash,
+     * login must throw {@link BadCredentialsException}.
+     */
+    @Test
+    void login_throwsBadCredentialsException_whenPasswordIsWrong() {
+        LoginRequest request = buildLoginRequest("kabelo@back2kasi.co.za", "wrongpassword");
+
+        User storedUser = User.builder()
+                .id(1L)
+                .email("kabelo@back2kasi.co.za")
+                .password("hashed_secret123")
+                .role(Role.USER)
+                .build();
+
+        when(userRepository.findByEmail(request.getEmail())).thenReturn(java.util.Optional.of(storedUser));
+        // BCrypt comparison returns false — wrong password
+        when(passwordEncoder.matches(request.getPassword(), storedUser.getPassword())).thenReturn(false);
+
+        assertThatThrownBy(() -> userService.login(request))
+                .isInstanceOf(BadCredentialsException.class);
+    }
+
+    // =========================================================
     // Helpers
     // =========================================================
 
@@ -151,6 +240,13 @@ class UserServiceTest {
         lenient().when(request.getEmail()).thenReturn(email);
         lenient().when(request.getPassword()).thenReturn(password);
         lenient().when(request.getPhoneNumber()).thenReturn(phoneNumber);
+        return request;
+    }
+
+    private LoginRequest buildLoginRequest(String email, String password) {
+        LoginRequest request = mock(LoginRequest.class);
+        lenient().when(request.getEmail()).thenReturn(email);
+        lenient().when(request.getPassword()).thenReturn(password);
         return request;
     }
 }

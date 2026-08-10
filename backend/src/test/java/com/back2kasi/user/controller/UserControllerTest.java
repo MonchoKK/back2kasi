@@ -1,5 +1,8 @@
 package com.back2kasi.user.controller;
 
+import com.back2kasi.auth.dto.AuthResponse;
+import com.back2kasi.auth.filter.JwtAuthenticationFilter;
+import com.back2kasi.auth.service.JwtService;
 import com.back2kasi.config.SecurityConfig;
 import com.back2kasi.user.service.UserService;
 import org.junit.jupiter.api.Test;
@@ -8,11 +11,13 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -34,7 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * </ul>
  */
 @WebMvcTest(UserController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class})
 class UserControllerTest {
 
     /** Simulates HTTP requests against the full Spring MVC pipeline. */
@@ -45,9 +50,21 @@ class UserControllerTest {
      * Replaced with a Mockito mock inside the Spring context.
      * The controller depends on this bean — the mock satisfies that dependency
      * without loading any real service or database logic.
+     * Because {@link UserService} implements {@code UserDetailsService}, this mock
+     * also satisfies the {@code UserDetailsService} dependency in
+     * {@link JwtAuthenticationFilter}.
      */
     @MockBean
     private UserService userService;
+
+    /**
+     * Mocked so that {@link JwtAuthenticationFilter} can be constructed in the
+     * web-layer test context. The filter needs {@code JwtService} to validate tokens,
+     * but in these tests the endpoints are public and the filter short-circuits
+     * immediately (no {@code Authorization} header is sent).
+     */
+    @MockBean
+    private JwtService jwtService;
 
     // =========================================================
     // Happy path
@@ -209,6 +226,83 @@ class UserControllerTest {
                                 }
                                 """))
                 .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").exists());
+    }
+
+    // =========================================================
+    // Login — Happy path
+    // =========================================================
+
+    /**
+     * Valid credentials must return {@code 200 OK} with a JSON body containing
+     * {@code token}, {@code tokenType}, and {@code expiresIn}.
+     */
+    @Test
+    void login_returns200WithToken_whenCredentialsAreValid() throws Exception {
+        AuthResponse authResponse = new AuthResponse("jwt.token.here", "Bearer", 86_400L);
+        when(userService.login(any())).thenReturn(authResponse);
+
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "email":    "kabelo@back2kasi.co.za",
+                                    "password": "secret123"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("jwt.token.here"))
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.expiresIn").value(86_400));
+    }
+
+    // =========================================================
+    // Login — 401 Unauthorized scenarios
+    // =========================================================
+
+    /**
+     * When the email is not registered, the service throws
+     * {@link BadCredentialsException} and the {@code GlobalExceptionHandler}
+     * must translate it to {@code 401 Unauthorized}.
+     *
+     * <p>Note: the response message is the same as for a wrong password —
+     * intentional, to prevent email enumeration.</p>
+     */
+    @Test
+    void login_returns401_whenEmailNotFound() throws Exception {
+        doThrow(new BadCredentialsException("Invalid email or password"))
+                .when(userService).login(any());
+
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "email":    "nobody@back2kasi.co.za",
+                                    "password": "secret123"
+                                }
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").exists());
+    }
+
+    /**
+     * When the password does not match, the service throws
+     * {@link BadCredentialsException} — same status and message as a missing email.
+     */
+    @Test
+    void login_returns401_whenPasswordIsWrong() throws Exception {
+        doThrow(new BadCredentialsException("Invalid email or password"))
+                .when(userService).login(any());
+
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "email":    "kabelo@back2kasi.co.za",
+                                    "password": "wrongpassword"
+                                }
+                                """))
+                .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").exists());
     }
 }

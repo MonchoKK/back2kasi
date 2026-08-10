@@ -80,10 +80,36 @@
         </dependency>
 
 
-        <!-- Security: BCryptPasswordEncoder for password hashing. Full JWT auth comes later. -->
+        <!-- Security: BCryptPasswordEncoder + Spring Security filter chain -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+
+        <!--
+            JJWT — JSON Web Token library (compile-time API + runtime engine + Jackson serialiser).
+            Three artifacts are required:
+              jjwt-api     → the interfaces we code against (compile scope)
+              jjwt-impl    → the implementation engine  (runtime only — never leak impl details)
+              jjwt-jackson → serialises/deserialises JWT claims using Jackson (runtime only)
+        -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.12.6</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.12.6</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.12.6</version>
+            <scope>runtime</scope>
         </dependency>
 
     </dependencies>
