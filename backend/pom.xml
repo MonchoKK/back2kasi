@@ -70,6 +70,17 @@
             <scope>test</scope>
         </dependency>
 
+        <!--
+            Spring Security Test — provides SecurityMockMvcRequestPostProcessors.user(...)
+            used in @WebMvcTest slice tests to inject a real UserDetails principal into
+            the SecurityContext without sending a JWT.
+        -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
 
         <!-- DevTools: auto-restart on save during development -->
         <dependency>

@@ -1,5 +1,7 @@
 package com.back2kasi.common;
 
+import com.back2kasi.common.exception.ResourceNotFoundException;
+import com.back2kasi.common.exception.UnauthorizedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -30,6 +32,35 @@ public class GlobalExceptionHandler {
         Map<String, String> error = new HashMap<>();
         error.put("error", ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    /**
+     * Handle requests for resources that do not exist (e.g. business not found).
+     *
+     * <p>Maps {@link ResourceNotFoundException} → {@code 404 Not Found}.</p>
+     */
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleNotFound(ResourceNotFoundException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    /**
+     * Handle ownership violations (authenticated user attempting to modify
+     * a resource they do not own).
+     *
+     * <p>Maps {@link UnauthorizedException} → {@code 403 Forbidden}.</p>
+     *
+     * <p><strong>Why 403 and not 401?</strong> The user is authenticated (they
+     * have a valid JWT) but is not authorised for this specific resource.
+     * 401 Unauthorized would imply no credentials were provided at all.</p>
+     */
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<Map<String, String>> handleUnauthorized(UnauthorizedException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
 
     /**
