@@ -3,6 +3,7 @@ package com.back2kasi.config;
 import com.back2kasi.auth.filter.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -63,6 +64,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public: anyone can register or log in
                         .requestMatchers("/api/users/register", "/api/users/login").permitAll()
+                        // Public: customers can browse rental units without logging in
+                        .requestMatchers(HttpMethod.GET, "/api/v1/rental-units", "/api/v1/rental-units/**").permitAll()
                         // Everything else requires a valid JWT
                         .anyRequest().authenticated()
                 )

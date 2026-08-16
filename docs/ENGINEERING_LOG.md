@@ -1,6 +1,6 @@
 # Back2Kasi Engineering Log
 
-> **Last Updated:** 2026-08-10 | **Current Sprint:** Sprint 3 – Business Management
+> **Last Updated:** 2026-08-11 | **Current Sprint:** Sprint 4 – Rental Unit Management
 
 ---
 
@@ -10,7 +10,8 @@
 |--------|-------|--------|-----|
 | Sprint 1 – Foundation | Project Init, Backend Setup, Domain Modelling, User Registration | ✅ Complete | [Sprint-01-Foundation.md](Engineering-Logs/Sprint-01-Foundation.md) |
 | Sprint 2 – Authentication | JWT Login, Spring Security Filter Chain | ✅ Complete | [Sprint-02-Authentication.md](Engineering-Logs/Sprint-02-Authentication.md) |
-| Sprint 3 – Business Management | Business entity, ownership model, rental unit types | 🔲 In Progress | — |
+| Sprint 3 – Business Management | Business entity, ownership model, CRUD API, ownership enforcement | ✅ Complete | — |
+| Sprint 4 – Rental Unit Management | RentalUnit entity, belongs-to-business, availability, CRUD API | 🔲 In Progress | — |
 
 ---
 
@@ -497,11 +498,187 @@ User rows confirmed in **pgAdmin** with BCrypt-hashed passwords (`$2a$10$...`) �
 > Detailed design decisions and implementation notes are recorded in
 > [Engineering-Logs/Sprint-02-Authentication.md](Engineering-Logs/Sprint-02-Authentication.md)
 
-#### 🔲 Next (Sprint 3 – Business Management)
-- Design the `Business` entity and `User → Business` ownership relationship
-- Answer product questions: multiple businesses per user? multiple rental types per business?
-- Implement CRUD for businesses (owner-only operations)
-- Protect business routes with JWT
+---
+
+## Sprint 3 – Business Management
+
+> **Sprint Goal:** Build the complete `Business` feature slice — entity, repository, service, REST API, and tests. Establish the ownership model that will underpin every future feature.
+
+---
+
+### Milestone 14 – Business Domain Design ✅
+
+**Questions Answered**
+
+*Can a user own multiple businesses?*
+Yes. A user who owns businesses is a business owner. A user who owns none is a customer. Both are the same entity — ownership is represented by the relationship, not a role.
+
+*Should `businessType` live on the `Business` entity or the `RentalUnit`?*
+Both. The business declares what category it operates in. Individual rental units may vary in type (e.g. a business could rent both standard and VIP toilets).
+
+**Design Decisions**
+
+| Decision | Choice | Reason |
+|----------|--------|--------|
+| Business ID type | `Long` | Consistent with existing `User` entity for MVP |
+| Soft delete | No — hard delete | Simpler for MVP; Flyway migration can add soft delete later |
+| `businessType` on `Business` | Yes (`TOILET_RENTAL`, `COLD_ROOM_RENTAL`) | Cheaper to add now than migrate later |
+| Updatable fields | All non-system fields | Name, description, address, phone, type |
+
+**Relationship Model**
+
+```
+User (1) ──────────< Business (Many)
+```
+
+- A `User` who owns one or more `Business` entities is a business owner.
+- Deleting a `User` cascades to delete all their `Business` rows (`CascadeType.ALL`, `orphanRemoval = true`).
+- The `owner_id` FK column lives on the `businesses` table.
+
+---
+
+### Milestone 15 – Business Entity ✅
+
+Created `Business.java` and `BusinessType.java`.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `id` | `Long` | Auto-generated PK |
+| `name` | `String` | Required — display name |
+| `description` | `String` | Optional tagline |
+| `address` | `String` | Required — physical address |
+| `phoneNumber` | `String` | Required — business contact |
+| `businessType` | `BusinessType` | Enum stored as `STRING` |
+| `owner` | `User` | `@ManyToOne LAZY` — FK `owner_id` |
+| `createdAt` | `LocalDateTime` | `@CreationTimestamp` |
+| `updatedAt` | `LocalDateTime` | `@UpdateTimestamp` |
+
+**Why `FetchType.LAZY` on `owner`?**
+
+Lazy loading means the `User` is not fetched from the database unless explicitly accessed. Without this, every query for a business would issue a JOIN to fetch the full owner record — unnecessary overhead when we only need `owner_id`.
+
+**`User.java` updated** — added the inverse `@OneToMany(mappedBy = "owner", cascade = ALL, orphanRemoval = true)` so Hibernate understands both sides of the relationship.
+
+---
+
+### Milestone 16 – BusinessRepository ✅
+
+`BusinessRepository` extends `JpaRepository<Business, Long>` and adds:
+
+```java
+List<Business> findByOwnerId(Long ownerId);
+boolean existsByIdAndOwnerId(Long id, Long ownerId);
+```
+
+**Why `findByOwnerId` instead of `findByOwner(User)`?**
+
+Passing the full `User` entity just to query by ID is wasteful — it requires loading the `User` first. `findByOwnerId(Long)` translates directly to `WHERE owner_id = ?`, which is more efficient and avoids an extra query.
+
+**Why `existsByIdAndOwnerId`?**
+
+Used in the service's ownership check. Translates to `SELECT EXISTS(SELECT 1 FROM businesses WHERE id = ? AND owner_id = ?)` — a single, cheap query that verifies both existence and ownership simultaneously.
+
+---
+
+### Milestone 17 – Business Service ✅
+
+Introduced the `Service` / `ServiceImpl` naming standard for the first time.
+
+**`BusinessService` (interface)** — the public contract, independently testable.
+
+**`BusinessServiceImpl`** — enforces all business rules:
+
+| Operation | Rule enforced |
+|-----------|---------------|
+| Create | Owner must exist; entity built from DTO |
+| Get all | Scoped to `ownerId` — never returns other users' businesses |
+| Get by ID | Two-step: fetch → verify ownership (precise error: 404 vs 403) |
+| Update | Verify ownership, apply all fields, let Hibernate dirty-check flush |
+| Delete | Verify ownership, hard delete |
+
+**Two-step ownership check**
+
+```
+1. businessRepository.findById(id)      → 404 if missing
+2. business.getOwner().getId() == caller → 403 if different owner
+```
+
+A single `existsByIdAndOwnerId` would collapse both failure cases into the same result, making it impossible to distinguish "business doesn't exist" from "business exists but belongs to someone else". Two steps gives precise, actionable error responses.
+
+**Why `@Transactional(readOnly = true)` on reads?**
+
+Read-only transactions allow the database to optimise (e.g. skip dirty-checking, use read replicas). Mutation operations use `@Transactional` to guarantee atomicity — a crash mid-update rolls back automatically.
+
+**New custom exceptions created:**
+
+| Exception | HTTP |
+|-----------|------|
+| `ResourceNotFoundException` | `404 Not Found` |
+| `UnauthorizedException` | `403 Forbidden` |
+
+`GlobalExceptionHandler` updated to handle both.
+
+---
+
+### Milestone 18 – Business API ✅
+
+```
+POST   /api/v1/businesses          → 201 Created
+GET    /api/v1/businesses          → 200 OK
+GET    /api/v1/businesses/{id}     → 200 OK / 404 / 403
+PUT    /api/v1/businesses/{id}     → 200 OK / 404 / 403
+DELETE /api/v1/businesses/{id}     → 204 No Content / 404 / 403
+```
+
+**`@AuthenticationPrincipal`**
+
+Instead of parsing the JWT manually in the controller, `@AuthenticationPrincipal User currentUser` extracts the authenticated `User` directly from Spring Security's `SecurityContext`. The `JwtAuthenticationFilter` already placed it there on every valid request — the controller simply uses it.
+
+All routes are JWT-protected via the existing `anyRequest().authenticated()` rule in `SecurityConfig`. No extra annotation is needed.
+
+---
+
+### Milestone 19 – Tests ✅
+
+**`spring-security-test` added** to `pom.xml` (test scope).
+
+**`BusinessServiceImplTest`** — 12 pure unit tests (Mockito, no Spring context):
+- Create: happy path + owner not found
+- Get all: list + empty list
+- Get by ID: happy path + 404 + 403
+- Update: happy path + 403
+- Delete: happy path + 403 + 404
+
+**`BusinessControllerTest`** — 11 `@WebMvcTest` slice tests:
+
+Authentication in `@WebMvcTest` with a real `SecurityConfig`:
+- `SecurityMockMvcRequestPostProcessors.user(authenticatedUser)` is used on every request.
+- This injects the real `User` entity into the `SecurityContext` for that request, satisfying `anyRequest().authenticated()` and resolving `@AuthenticationPrincipal` correctly — without sending a real JWT.
+
+---
+
+### Sprint 3 Status
+
+#### ✅ Completed
+- `BusinessType` enum
+- `Business` JPA entity + `User` inverse relationship
+- `BusinessRepository` with ownership-scoped queries
+- `CreateBusinessRequest`, `UpdateBusinessRequest`, `BusinessResponse` DTOs
+- `ResourceNotFoundException` + `UnauthorizedException`
+- `GlobalExceptionHandler` updated (404 + 403)
+- `BusinessService` interface + `BusinessServiceImpl`
+- `BusinessController` — 5 REST endpoints
+- `spring-security-test` added to `pom.xml`
+- 23 new tests (12 unit + 11 MVC) — all 42 tests passing
+- Pushed to GitHub: `feat(business): implement Business entity, repository, service, and API with ownership enforcement`
+
+**Sprint 3 is complete.**
+
+#### 🔲 Next (Sprint 4 – Rental Unit Management)
+- Design the `RentalUnit` entity — belongs to a `Business`, owned indirectly by a `User`
+- Answer product questions: what makes a rental unit unique? availability model? pricing?
+- Implement CRUD for rental units (owner-only operations)
+- Public listing endpoint (no JWT required — customers browse without logging in)
 
 ---
 
