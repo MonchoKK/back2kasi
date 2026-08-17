@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'config/app_theme.dart';
 import 'core/auth_service.dart';
+import 'core/business_provider.dart';
 import 'views/auth/login_screen.dart';
 import 'views/auth/register_screen.dart';
-import 'views/customer/browse_screen.dart';
+import 'views/shared/main_navigation_shell.dart';
 
 void main() {
   runApp(
@@ -13,6 +14,9 @@ void main() {
       providers: [
         ChangeNotifierProvider(
           create: (_) => AuthService()..tryAutoLogin(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => BusinessProvider(),
         ),
       ],
       child: const Back2KasiApp(),
@@ -43,13 +47,13 @@ class Back2KasiApp extends StatelessWidget {
               ),
             )
           : authService.isAuthenticated
-              ? const BrowseScreen()
+              ? const MainNavigationShell()
               : const LoginScreen(),
 
       routes: {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
-        '/home': (context) => const BrowseScreen(),
+        '/home': (context) => const MainNavigationShell(),
       },
     );
   }
