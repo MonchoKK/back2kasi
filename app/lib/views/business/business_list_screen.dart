@@ -5,6 +5,7 @@ import '../../core/auth_service.dart';
 import '../../core/business_provider.dart';
 import '../../models/business.dart';
 import 'create_edit_business_screen.dart';
+import 'business_detail_screen.dart';
 
 /**
  * Screen presenting a list of businesses registered by the active user.
@@ -200,8 +201,11 @@ class _BusinessListScreenState extends State<BusinessListScreen> {
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Dashboard for "${business.name}" coming soon!')),
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BusinessDetailScreen(business: business),
+            ),
           );
         },
         child: Padding(

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'config/app_theme.dart';
 import 'core/auth_service.dart';
 import 'core/business_provider.dart';
+import 'core/rental_unit_provider.dart';
 import 'views/auth/login_screen.dart';
 import 'views/auth/register_screen.dart';
 import 'views/shared/main_navigation_shell.dart';
@@ -17,6 +18,9 @@ void main() {
         ),
         ChangeNotifierProvider(
           create: (_) => BusinessProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => RentalUnitProvider(),
         ),
       ],
       child: const Back2KasiApp(),
