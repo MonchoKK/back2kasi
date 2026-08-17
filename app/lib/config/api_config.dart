@@ -26,7 +26,7 @@ class ApiConfig {
     if (Platform.isAndroid) {
       // 10.0.2.2 is Android's special alias to the host machine's loopback interface.
       return 'http://10.0.2.2:8080';
-    } else if (Platform.isIOS) {
+    } else if (Platform.isIOS || Platform.isWindows) {
       return 'http://localhost:8080';
     }
     // Fallback/physical device route
