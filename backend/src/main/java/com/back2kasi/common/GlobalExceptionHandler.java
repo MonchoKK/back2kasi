@@ -18,79 +18,94 @@ import java.util.Map;
  * <p>{@code @RestControllerAdvice} intercepts exceptions thrown by any
  * {@code @RestController} and maps them to meaningful HTTP responses —
  * rather than letting Spring return a generic 500 Internal Server Error.</p>
+ *
+ * <p>All handlers return {@link ApiError} — the single standard error body
+ * used across the entire API. This gives clients (Flutter, Postman, Swagger)
+ * a single consistent shape to parse for every failure case.</p>
+ *
+ * <h2>Error map</h2>
+ * <table>
+ *   <tr><th>Exception</th><th>HTTP</th><th>Notes</th></tr>
+ *   <tr><td>MethodArgumentNotValidException</td><td>400</td><td>Bean Validation failures; includes per-field errors</td></tr>
+ *   <tr><td>BadCredentialsException</td><td>401</td><td>Wrong email or password; generic message to prevent enumeration</td></tr>
+ *   <tr><td>UnauthorizedException</td><td>403</td><td>Authenticated but not the owner of the resource</td></tr>
+ *   <tr><td>ResourceNotFoundException</td><td>404</td><td>Entity with given ID does not exist</td></tr>
+ *   <tr><td>IllegalStateException</td><td>409</td><td>Business rule conflict (e.g. duplicate email, booking overlap)</td></tr>
+ * </table>
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     /**
-     * Handle duplicate resource conflicts (e.g. email already registered).
+     * Handle Bean Validation failures — e.g. blank name, missing businessType.
      *
-     * <p>Maps {@link IllegalStateException} → {@code 409 Conflict}.</p>
+     * <p>Returns {@code 400 Bad Request} with a map of field names to their
+     * validation error messages inside {@link ApiError#fieldErrors()}.</p>
      */
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<Map<String, String>> handleConflict(IllegalStateException ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex) {
+        Map<String, String> fieldErrors = new HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(fieldError ->
+                fieldErrors.put(fieldError.getField(), fieldError.getDefaultMessage())
+        );
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiError.validationError(fieldErrors));
     }
 
     /**
-     * Handle requests for resources that do not exist (e.g. business not found).
+     * Handle invalid login credentials — wrong email or wrong password.
      *
-     * <p>Maps {@link ResourceNotFoundException} → {@code 404 Not Found}.</p>
+     * <p>Returns {@code 401 Unauthorized} with a generic message.
+     * The message does not reveal <em>which</em> field is wrong; doing so
+     * would allow an attacker to enumerate registered email addresses.</p>
      */
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleNotFound(ResourceNotFoundException ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ApiError> handleBadCredentials(BadCredentialsException ex) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiError.of(401, "Unauthorized", "Invalid email or password"));
     }
 
     /**
-     * Handle ownership violations (authenticated user attempting to modify
-     * a resource they do not own).
+     * Handle ownership violations — authenticated user attempting to modify
+     * a resource they do not own.
      *
-     * <p>Maps {@link UnauthorizedException} → {@code 403 Forbidden}.</p>
+     * <p>Returns {@code 403 Forbidden}.</p>
      *
      * <p><strong>Why 403 and not 401?</strong> The user is authenticated (they
      * have a valid JWT) but is not authorised for this specific resource.
      * 401 Unauthorized would imply no credentials were provided at all.</p>
      */
     @ExceptionHandler(UnauthorizedException.class)
-    public ResponseEntity<Map<String, String>> handleUnauthorized(UnauthorizedException ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    public ResponseEntity<ApiError> handleUnauthorized(UnauthorizedException ex) {
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(ApiError.of(403, "Forbidden", ex.getMessage()));
     }
 
     /**
-     * Handle invalid login credentials (wrong email or wrong password).
+     * Handle requests for resources that do not exist.
      *
-     * <p>Maps {@link BadCredentialsException} → {@code 401 Unauthorized}.</p>
-     *
-     * <p>The response message is intentionally generic: {@code "Invalid email or password"}.
-     * Revealing <em>which</em> field is wrong would allow an attacker to enumerate
-     * registered email addresses.</p>
+     * <p>Returns {@code 404 Not Found}.</p>
      */
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<Map<String, String>> handleBadCredentials(BadCredentialsException ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", "Invalid email or password");
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiError> handleNotFound(ResourceNotFoundException ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ApiError.of(404, "Not Found", ex.getMessage()));
     }
 
     /**
-     * Handle Bean Validation failures (e.g. blank email, short password).
+     * Handle business rule conflicts — e.g. duplicate email registration,
+     * booking date overlap, illegal status transitions.
      *
-     * <p>Maps {@link MethodArgumentNotValidException} → {@code 400 Bad Request}
-     * with a map of field names to their validation error messages.</p>
+     * <p>Returns {@code 409 Conflict}.</p>
      */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidation(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(fieldError ->
-                errors.put(fieldError.getField(), fieldError.getDefaultMessage())
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiError> handleConflict(IllegalStateException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ApiError.of(409, "Conflict", ex.getMessage()));
     }
 }

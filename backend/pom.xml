@@ -123,6 +123,24 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!--
+            TODO: Springdoc OpenAPI (Swagger UI) — add once network/Maven Central is stable.
+            Dependency: org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0
+            Also requires: OpenApiConfig.java + SecurityConfig permit /swagger-ui/** routes
+        -->
+
+        <!--
+            H2 in-memory database — used exclusively in the 'test' profile for
+            integration tests. Provides a real relational database without requiring
+            a running PostgreSQL instance. H2's PostgreSQL compatibility mode
+            covers all standard JPQL / Spring Data queries used in this project.
+        -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
 

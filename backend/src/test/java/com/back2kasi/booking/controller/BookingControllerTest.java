@@ -131,7 +131,7 @@ class BookingControllerTest {
                                 }
                                 """.formatted(START, END)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.rentalUnitId").exists());
+                .andExpect(jsonPath("$.fieldErrors.rentalUnitId").exists());
 
         verify(bookingService, never()).createBooking(any(), any());
     }
@@ -263,7 +263,7 @@ class BookingControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").exists());
+                .andExpect(jsonPath("$.fieldErrors.status").exists());
     }
 
     // =========================================================

@@ -123,7 +123,7 @@ class UserControllerTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 // The response body must contain at least the firstName error
-                .andExpect(jsonPath("$.firstName").exists());
+                .andExpect(jsonPath("$.fieldErrors.firstName").exists());
     }
 
     /**
@@ -144,7 +144,7 @@ class UserControllerTest {
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.email").exists());
+                .andExpect(jsonPath("$.fieldErrors.email").exists());
     }
 
     /**
@@ -168,7 +168,7 @@ class UserControllerTest {
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.password").exists());
+                .andExpect(jsonPath("$.fieldErrors.password").exists());
     }
 
     /**
@@ -193,7 +193,7 @@ class UserControllerTest {
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.phoneNumber").exists());
+                .andExpect(jsonPath("$.fieldErrors.phoneNumber").exists());
     }
 
     // =========================================================

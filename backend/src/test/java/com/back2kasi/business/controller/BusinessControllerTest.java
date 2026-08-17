@@ -153,7 +153,7 @@ class BusinessControllerTest {
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.name").exists());
+                .andExpect(jsonPath("$.fieldErrors.name").exists());
 
         verify(businessService, never()).createBusiness(any(), any());
     }
@@ -175,7 +175,7 @@ class BusinessControllerTest {
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.businessType").exists());
+                .andExpect(jsonPath("$.fieldErrors.businessType").exists());
     }
 
     // =========================================================

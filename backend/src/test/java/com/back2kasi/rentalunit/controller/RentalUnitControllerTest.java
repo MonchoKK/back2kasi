@@ -125,7 +125,7 @@ class RentalUnitControllerTest {
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.name").exists());
+                .andExpect(jsonPath("$.fieldErrors.name").exists());
 
         verify(rentalUnitService, never()).createRentalUnit(any(), any());
     }
@@ -145,7 +145,7 @@ class RentalUnitControllerTest {
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.pricePerDay").exists());
+                .andExpect(jsonPath("$.fieldErrors.pricePerDay").exists());
     }
 
     @Test
