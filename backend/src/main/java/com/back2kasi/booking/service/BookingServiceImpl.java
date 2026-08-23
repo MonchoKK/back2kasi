@@ -330,4 +330,14 @@ public class BookingServiceImpl implements BookingService {
             );
         }
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookingResponse> getBookingsForOwner(Long ownerId) {
+        log.debug("Fetching all bookings for businesses owned by ownerId={}", ownerId);
+        return bookingRepository.findByRentalUnitBusinessOwnerId(ownerId)
+                .stream()
+                .map(BookingResponse::from)
+                .toList();
+    }
 }

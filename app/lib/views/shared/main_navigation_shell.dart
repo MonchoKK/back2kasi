@@ -2,13 +2,13 @@
 import 'package:flutter/material.dart';
 import '../customer/browse_screen.dart';
 import '../booking/my_bookings_screen.dart';
-import '../business/business_list_screen.dart';
+import '../business/dashboard_screen.dart';
 
 /**
  * Main shell routing authenticated traffic between Browse, My Bookings, and Owner Mode.
  *
  * <p>Wraps a BottomNavigationBar supporting transitions between rentals browsing
- * (index 0), booking history (index 1), and business profiles listing (index 2).</p>
+ * (index 0), booking history (index 1), and owner portal dashboard (index 2).</p>
  */
 class MainNavigationShell extends StatefulWidget {
   final int initialIndex;
@@ -30,7 +30,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   final List<Widget> _screens = const [
     BrowseScreen(),
     MyBookingsScreen(),
-    BusinessListScreen(),
+    DashboardScreen(),
   ];
 
   @override

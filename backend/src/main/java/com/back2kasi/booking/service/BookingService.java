@@ -95,4 +95,12 @@ public interface BookingService {
      *                                                                   from the current status
      */
     BookingResponse updateBookingStatus(Long id, UpdateBookingStatusRequest request, Long callerId);
+
+    /**
+     * Retrieve all bookings across all businesses owned by this owner.
+     *
+     * @param ownerId the primary key of the business owner
+     * @return list of bookings; empty list if the owner has no bookings
+     */
+    List<BookingResponse> getBookingsForOwner(Long ownerId);
 }

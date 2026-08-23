@@ -9,18 +9,20 @@ import '../models/booking.dart';
  * State provider managing the booking lifecycle.
  *
  * <p>Handles calling the Spring Boot backend REST endpoints for creating,
- * retrieving, and cancelling bookings. Caches the user's bookings in memory
- * and notifies interested UI components on state changes.</p>
+ * retrieving, updating status, and cancelling bookings. Caches both customer
+ * and business owner bookings in separate memory lists.</p>
  */
 class BookingProvider extends ChangeNotifier {
   final http.Client _client;
   List<Booking> _myBookings = [];
+  List<Booking> _ownerBookings = [];
   bool _isLoading = false;
   String? _errorMessage;
 
   BookingProvider({http.Client? client}) : _client = client ?? http.Client();
 
   List<Booking> get myBookings => _myBookings;
+  List<Booking> get ownerBookings => _ownerBookings;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -52,6 +54,37 @@ class BookingProvider extends ChangeNotifier {
       } else {
         final responseBody = jsonDecode(response.body);
         _errorMessage = responseBody['message'] ?? 'Failed to load bookings';
+      }
+    } catch (e) {
+      _errorMessage = 'Connection error: unable to reach host';
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /**
+   * Fetch all bookings for businesses owned by the authenticated owner.
+   * Calls GET /api/v1/bookings/owner
+   */
+  Future<void> fetchOwnerBookings(String token) async {
+    _setLoading(true);
+    _errorMessage = null;
+
+    try {
+      final response = await _client.get(
+        Uri.parse('${ApiConfig.bookings}/owner'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> listJson = jsonDecode(response.body);
+        _ownerBookings = listJson.map((json) => Booking.fromJson(json)).toList();
+      } else {
+        final responseBody = jsonDecode(response.body);
+        _errorMessage = responseBody['message'] ?? 'Failed to load owner bookings';
       }
     } catch (e) {
       _errorMessage = 'Connection error: unable to reach host';
@@ -116,10 +149,18 @@ class BookingProvider extends ChangeNotifier {
   }
 
   /**
-   * Cancel a pending booking.
+   * Cancel a pending booking (called by customer).
    * Calls PATCH /api/v1/bookings/{id}/status with {"status": "CANCELLED"}
    */
   Future<void> cancelBooking(int bookingId, String token) async {
+    await updateBookingStatus(bookingId, BookingStatus.CANCELLED, token);
+  }
+
+  /**
+   * Update the status of a booking (called by customer or owner).
+   * Calls PATCH /api/v1/bookings/{id}/status
+   */
+  Future<void> updateBookingStatus(int bookingId, BookingStatus newStatus, String token) async {
     _setLoading(true);
     _errorMessage = null;
 
@@ -131,25 +172,34 @@ class BookingProvider extends ChangeNotifier {
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'status': 'CANCELLED',
+          'status': newStatus.toString().split('.').last,
         }),
       );
 
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         final updatedBooking = Booking.fromJson(responseBody);
-        final index = _myBookings.indexWhere((b) => b.id == bookingId);
-        if (index != -1) {
-          _myBookings[index] = updatedBooking;
+
+        // Update in customer list if cached
+        final myIdx = _myBookings.indexWhere((b) => b.id == bookingId);
+        if (myIdx != -1) {
+          _myBookings[myIdx] = updatedBooking;
         }
+
+        // Update in owner list if cached
+        final ownerIdx = _ownerBookings.indexWhere((b) => b.id == bookingId);
+        if (ownerIdx != -1) {
+          _ownerBookings[ownerIdx] = updatedBooking;
+        }
+        notifyListeners();
       } else {
         final responseBody = jsonDecode(response.body);
-        _errorMessage = responseBody['message'] ?? 'Failed to cancel booking';
+        _errorMessage = responseBody['message'] ?? 'Failed to update booking status';
         throw Exception(_errorMessage);
       }
     } catch (e) {
       if (_errorMessage == null) {
-        _errorMessage = 'Connection error: unable to cancel booking';
+        _errorMessage = 'Connection error: unable to update booking status';
       }
       rethrow;
     } finally {

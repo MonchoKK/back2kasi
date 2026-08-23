@@ -224,6 +224,27 @@ class BookingControllerTest {
     }
 
     // =========================================================
+    // GET /api/v1/bookings/owner  (JWT required)
+    // =========================================================
+
+    @Test
+    void getOwnerBookings_returns200_withList() throws Exception {
+        when(bookingService.getBookingsForOwner(1L)).thenReturn(List.of(sampleResponse));
+
+        mockMvc.perform(get("/api/v1/bookings/owner")
+                        .with(user(owner)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].status").value("PENDING"));
+    }
+
+    @Test
+    void getOwnerBookings_returns403_whenNotAuthenticated() throws Exception {
+        mockMvc.perform(get("/api/v1/bookings/owner"))
+                .andExpect(status().isForbidden());
+    }
+
+    // =========================================================
     // PATCH /api/v1/bookings/{id}/status  (JWT required)
     // =========================================================
 

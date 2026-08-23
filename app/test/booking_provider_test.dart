@@ -169,5 +169,65 @@ void main() {
       expect(provider.myBookings.first.status, BookingStatus.CANCELLED);
       expect(provider.errorMessage, isNull);
     });
+
+    test('fetchOwnerBookings success should populate list', () async {
+      final mockClient = MockClient((request) async {
+        final mockResponseList = [
+          {
+            'id': 15,
+            'startDate': '2026-08-20',
+            'endDate': '2026-08-22',
+            'totalPrice': 600.0,
+            'status': 'PENDING',
+            'rentalUnitId': 101,
+            'customerId': 3,
+          }
+        ];
+        return http.Response(jsonEncode(mockResponseList), 200);
+      });
+
+      final provider = BookingProvider(client: mockClient);
+      await provider.fetchOwnerBookings('mock_token');
+
+      expect(provider.ownerBookings.length, 1);
+      expect(provider.ownerBookings.first.id, 15);
+      expect(provider.errorMessage, isNull);
+    });
+
+    test('updateBookingStatus (CONFIRMED) should update both myBookings and ownerBookings caches', () async {
+      final mockClient = MockClient((request) async {
+        final responseJson = {
+          'id': 5,
+          'startDate': '2026-08-20',
+          'endDate': '2026-08-22',
+          'totalPrice': 300.0,
+          'status': 'CONFIRMED',
+          'rentalUnitId': 100,
+          'customerId': 2,
+        };
+        return http.Response(jsonEncode(responseJson), 200);
+      });
+
+      final provider = BookingProvider(client: mockClient);
+
+      // Seed both lists
+      final initialBooking = Booking(
+        id: 5,
+        startDate: DateTime(2026, 8, 20),
+        endDate: DateTime(2026, 8, 22),
+        totalPrice: 300.0,
+        status: BookingStatus.PENDING,
+        rentalUnitId: 100,
+        customerId: 2,
+      );
+      provider.myBookings.add(initialBooking);
+      provider.ownerBookings.add(initialBooking);
+
+      await provider.updateBookingStatus(5, BookingStatus.CONFIRMED, 'mock_token');
+
+      expect(provider.myBookings.first.status, BookingStatus.CONFIRMED);
+      expect(provider.ownerBookings.first.status, BookingStatus.CONFIRMED);
+      expect(provider.errorMessage, isNull);
+    });
   });
 }

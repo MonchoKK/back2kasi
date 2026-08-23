@@ -151,4 +151,21 @@ public class BookingController {
 
         return ResponseEntity.ok(bookingService.updateBookingStatus(id, request, currentUser.getId()));
     }
+
+    // =========================================================
+    // GET /api/v1/bookings/owner  (JWT required — owner)
+    // =========================================================
+
+    /**
+     * Retrieve all bookings across all businesses owned by this owner.
+     *
+     * @param currentUser the authenticated user
+     * @return {@code 200 OK} with the list of {@link BookingResponse}
+     */
+    @GetMapping("/owner")
+    public ResponseEntity<List<BookingResponse>> getOwnerBookings(
+            @AuthenticationPrincipal User currentUser) {
+
+        return ResponseEntity.ok(bookingService.getBookingsForOwner(currentUser.getId()));
+    }
 }
