@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/auth_service.dart';
 import '../../core/booking_provider.dart';
 import '../../models/booking.dart';
+import 'booking_details_screen.dart';
 
 /**
  * Screen displaying the user's booking history.
@@ -34,51 +35,6 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     }
   }
 
-  Future<void> _cancelBooking(Booking booking) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cancel Booking'),
-        content: Text(
-          'Are you sure you want to cancel booking #${booking.id}?\n\n'
-          '${_formatDate(booking.startDate)} → ${_formatDate(booking.endDate)}',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Keep'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
-            child: const Text('Cancel Booking'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      final token = context.read<AuthService>().token;
-      if (token != null) {
-        try {
-          await context.read<BookingProvider>().cancelBooking(booking.id, token);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Booking cancelled'),
-              backgroundColor: Color(0xFF66BB6A),
-            ),
-          );
-        } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString().replaceAll('Exception: ', '')),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-        }
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -197,127 +153,118 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header: Status + Booking ID
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: badgeColor,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(statusIcon, size: 14, color: textColor),
-                      const SizedBox(width: 4),
-                      Text(
-                        statusLabel,
-                        style: TextStyle(
-                          color: textColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  'Booking #${booking.id}',
-                  style: const TextStyle(
-                    color: Color(0xFF94A3B8),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BookingDetailsScreen(booking: booking),
             ),
-
-            const SizedBox(height: 16),
-
-            // Dates
-            Row(
-              children: [
-                const Icon(Icons.date_range, size: 18, color: Color(0xFF5D5FEF)),
-                const SizedBox(width: 8),
-                Text(
-                  '${_formatDate(booking.startDate)} → ${_formatDate(booking.endDate)}',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 8),
-
-            // Duration + Unit ID
-            Row(
-              children: [
-                const Icon(Icons.timer_outlined, size: 16, color: Colors.grey),
-                const SizedBox(width: 8),
-                Text(
-                  '${booking.endDate.difference(booking.startDate).inDays} day(s)',
-                  style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-                ),
-                const SizedBox(width: 16),
-                const Icon(Icons.home_work_outlined, size: 16, color: Colors.grey),
-                const SizedBox(width: 4),
-                Text(
-                  'Unit #${booking.rentalUnitId}',
-                  style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-                ),
-              ],
-            ),
-
-            if (booking.notes != null && booking.notes!.isNotEmpty) ...[
-              const SizedBox(height: 8),
+          );
+          // Refresh list on pop to catch status updates
+          _loadBookings();
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header: Status + Booking ID
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.notes, size: 16, color: Colors.grey),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: badgeColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(statusIcon, size: 14, color: textColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          statusLabel,
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    'Booking #${booking.id}',
+                    style: const TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // Business and Unit Names
+              Text(
+                booking.businessName ?? 'Service Provider',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                booking.rentalUnitName ?? 'Rental Unit',
+                style: const TextStyle(
+                  color: Color(0xFF8C8DFF),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Divider(color: Colors.white10),
+              const SizedBox(height: 12),
+
+              // Dates
+              Row(
+                children: [
+                  const Icon(Icons.date_range, size: 18, color: Color(0xFF5D5FEF)),
                   const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      booking.notes!,
-                      style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                  Text(
+                    '${_formatDate(booking.startDate)} → ${_formatDate(booking.endDate)}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+
+              // Duration
+              Row(
+                children: [
+                  const Icon(Icons.timer_outlined, size: 16, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${booking.endDate.difference(booking.startDate).inDays} day(s)',
+                    style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                  ),
+                  const Spacer(),
+                  Text(
+                    'R ${booking.totalPrice.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      color: Color(0xFFFFB74D),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
                   ),
                 ],
               ),
             ],
-
-            const SizedBox(height: 12),
-            const Divider(color: Colors.white10),
-            const SizedBox(height: 8),
-
-            // Footer: Total Price + Cancel
-            Row(
-              children: [
-                Text(
-                  'R ${booking.totalPrice.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    color: Color(0xFFFFB74D),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                const Spacer(),
-                if (booking.status == BookingStatus.PENDING)
-                  TextButton.icon(
-                    onPressed: () => _cancelBooking(booking),
-                    icon: const Icon(Icons.close, size: 16),
-                    label: const Text('Cancel'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.redAccent,
-                    ),
-                  ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -16,6 +16,8 @@ class Booking {
   final double totalPrice;
   final BookingStatus status;
   final int rentalUnitId;
+  final String? rentalUnitName;
+  final String? businessName;
   final int customerId;
   final String? notes;
   final DateTime? createdAt;
@@ -27,6 +29,8 @@ class Booking {
     required this.totalPrice,
     required this.status,
     required this.rentalUnitId,
+    this.rentalUnitName,
+    this.businessName,
     required this.customerId,
     this.notes,
     this.createdAt,
@@ -43,6 +47,8 @@ class Booking {
         orElse: () => BookingStatus.PENDING,
       ),
       rentalUnitId: json['rentalUnitId'] as int,
+      rentalUnitName: json['rentalUnitName'] as String?,
+      businessName: json['businessName'] as String?,
       customerId: json['customerId'] as int,
       notes: json['notes'] as String?,
       createdAt: json['createdAt'] != null
@@ -60,6 +66,8 @@ class Booking {
       'totalPrice': totalPrice,
       'status': status.toString().split('.').last,
       'rentalUnitId': rentalUnitId,
+      'rentalUnitName': rentalUnitName,
+      'businessName': businessName,
       'customerId': customerId,
       'notes': notes,
     };

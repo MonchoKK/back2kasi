@@ -36,6 +36,8 @@ import java.time.LocalDateTime;
 public record BookingResponse(
         Long id,
         Long rentalUnitId,
+        String rentalUnitName,
+        String businessName,
         Long customerId,
         LocalDate startDate,
         LocalDate endDate,
@@ -56,6 +58,8 @@ public record BookingResponse(
         return new BookingResponse(
                 booking.getId(),
                 booking.getRentalUnit().getId(),
+                booking.getRentalUnit().getName(),
+                booking.getRentalUnit().getBusiness().getName(),
                 booking.getCustomer().getId(),
                 booking.getStartDate(),
                 booking.getEndDate(),

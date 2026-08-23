@@ -83,7 +83,7 @@ class BookingControllerTest {
                 .build();
 
         sampleResponse = new BookingResponse(
-                200L, 100L, 2L,
+                200L, 100L, "Standard Toilet", "Kasi Toilets", 2L,
                 START, END,
                 new BigDecimal("450.00"),
                 BookingStatus.PENDING,
@@ -230,7 +230,7 @@ class BookingControllerTest {
     @Test
     void updateBookingStatus_returns200_whenOwnerConfirms() throws Exception {
         BookingResponse confirmed = new BookingResponse(
-                200L, 100L, 2L, START, END,
+                200L, 100L, "Standard Toilet", "Kasi Toilets", 2L, START, END,
                 new BigDecimal("450.00"), BookingStatus.CONFIRMED,
                 null, LocalDateTime.now(), LocalDateTime.now()
         );
