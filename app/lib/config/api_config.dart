@@ -39,6 +39,7 @@ class ApiConfig {
 
   // --- Resource endpoints ---
   static String get businesses => '$baseUrl/api/v1/businesses';
+  static String get myBusinesses => '$baseUrl/api/v1/businesses/my';
   static String get rentalUnits => '$baseUrl/api/v1/rental-units';
   static String get bookings => '$baseUrl/api/v1/bookings';
 }

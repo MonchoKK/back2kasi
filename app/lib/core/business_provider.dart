@@ -13,10 +13,12 @@ import '../models/business.dart';
  */
 class BusinessProvider extends ChangeNotifier {
   List<Business> _myBusinesses = [];
+  List<Business> _allBusinesses = [];
   bool _isLoading = false;
   String? _errorMessage;
 
   List<Business> get myBusinesses => _myBusinesses;
+  List<Business> get allBusinesses => _allBusinesses;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -37,7 +39,7 @@ class BusinessProvider extends ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse(ApiConfig.businesses),
+        Uri.parse(ApiConfig.myBusinesses),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -47,6 +49,36 @@ class BusinessProvider extends ChangeNotifier {
       if (response.statusCode == 200) {
         final List<dynamic> listJson = jsonDecode(response.body);
         _myBusinesses = listJson.map((json) => Business.fromJson(json)).toList();
+      } else {
+        final responseBody = jsonDecode(response.body);
+        _errorMessage = responseBody['message'] ?? 'Failed to load businesses';
+      }
+    } catch (e) {
+      _errorMessage = 'Connection error: unable to reach host';
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /**
+   * Fetch all registered businesses on the platform (public browse).
+   */
+  Future<void> fetchAllBusinesses(String token) async {
+    _setLoading(true);
+    _errorMessage = null;
+
+    try {
+      final response = await http.get(
+        Uri.parse(ApiConfig.businesses),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> listJson = jsonDecode(response.body);
+        _allBusinesses = listJson.map((json) => Business.fromJson(json)).toList();
       } else {
         final responseBody = jsonDecode(response.body);
         _errorMessage = responseBody['message'] ?? 'Failed to load businesses';

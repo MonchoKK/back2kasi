@@ -13,10 +13,12 @@ import '../models/rental_unit.dart';
  */
 class RentalUnitProvider extends ChangeNotifier {
   final Map<int, List<RentalUnit>> _businessUnits = {};
+  List<RentalUnit> _allUnits = [];
   bool _isLoading = false;
   String? _errorMessage;
 
   Map<int, List<RentalUnit>> get businessUnits => _businessUnits;
+  List<RentalUnit> get allUnits => _allUnits;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -27,6 +29,34 @@ class RentalUnitProvider extends ChangeNotifier {
   void _setLoading(bool val) {
     _isLoading = val;
     notifyListeners();
+  }
+
+  /**
+   * Fetch all available rental units across all businesses (public browse).
+   * Calls GET /api/v1/rental-units with no businessId filter.
+   */
+  Future<void> fetchAllAvailableUnits() async {
+    _setLoading(true);
+    _errorMessage = null;
+
+    try {
+      final response = await http.get(
+        Uri.parse(ApiConfig.rentalUnits),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> listJson = jsonDecode(response.body);
+        _allUnits = listJson.map((json) => RentalUnit.fromJson(json)).toList();
+      } else {
+        final responseBody = jsonDecode(response.body);
+        _errorMessage = responseBody['message'] ?? 'Failed to load units';
+      }
+    } catch (e) {
+      _errorMessage = 'Connection error: unable to reach host';
+    } finally {
+      _setLoading(false);
+    }
   }
 
   /**

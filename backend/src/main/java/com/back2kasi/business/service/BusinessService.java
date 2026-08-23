@@ -43,15 +43,24 @@ public interface BusinessService {
     List<BusinessResponse> getMyBusinesses(Long ownerId);
 
     /**
-     * Retrieve a single business by its ID, enforcing ownership.
+     * Retrieve all registered businesses on the platform.
+     *
+     * <p>Public/customer discovery — no ownership check required.</p>
+     *
+     * @return list of all businesses; empty list if none exist
+     */
+    List<BusinessResponse> getAllBusinesses();
+
+    /**
+     * Retrieve a single business by its ID.
+     *
+     * <p>No ownership check required (public/customer info).</p>
      *
      * @param id      the business primary key
-     * @param ownerId the ID of the authenticated user making the request
      * @return the business as a response DTO
      * @throws com.back2kasi.common.exception.ResourceNotFoundException if no business exists with the given ID
-     * @throws com.back2kasi.common.exception.UnauthorizedException     if the business is not owned by this user
      */
-    BusinessResponse getBusinessById(Long id, Long ownerId);
+    BusinessResponse getBusinessById(Long id);
 
     /**
      * Update all mutable fields of an existing business, enforcing ownership.

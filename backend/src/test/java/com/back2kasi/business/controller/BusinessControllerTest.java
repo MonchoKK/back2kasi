@@ -179,7 +179,28 @@ class BusinessControllerTest {
     }
 
     // =========================================================
-    // GET /api/v1/businesses
+    // GET /api/v1/businesses (Discovery — all businesses)
+    // =========================================================
+
+    @Test
+    void getAllBusinesses_returns200_withListOfAllBusinesses() throws Exception {
+        BusinessResponse second = new BusinessResponse(
+                11L, "Cold Kings", null, "456 Alex Rd",
+                "+27722222222", BusinessType.COLD_ROOM_RENTAL,
+                2L, LocalDateTime.now(), LocalDateTime.now()
+        );
+        when(businessService.getAllBusinesses()).thenReturn(List.of(sampleResponse, second));
+
+        mockMvc.perform(get("/api/v1/businesses")
+                        .with(user(authenticatedUser)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].name").value("Kasi Toilets"))
+                .andExpect(jsonPath("$[1].name").value("Cold Kings"));
+    }
+
+    // =========================================================
+    // GET /api/v1/businesses/my (Owned businesses)
     // =========================================================
 
     /**
@@ -195,7 +216,7 @@ class BusinessControllerTest {
         );
         when(businessService.getMyBusinesses(1L)).thenReturn(List.of(sampleResponse, second));
 
-        mockMvc.perform(get("/api/v1/businesses")
+        mockMvc.perform(get("/api/v1/businesses/my")
                         .with(user(authenticatedUser)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
@@ -210,7 +231,7 @@ class BusinessControllerTest {
     void getMyBusinesses_returns200_withEmptyList_whenOwnerHasNone() throws Exception {
         when(businessService.getMyBusinesses(1L)).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/v1/businesses")
+        mockMvc.perform(get("/api/v1/businesses/my")
                         .with(user(authenticatedUser)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
@@ -221,11 +242,11 @@ class BusinessControllerTest {
     // =========================================================
 
     /**
-     * Fetching an owned business by its ID must return 200 OK with its data.
+     * Fetching a business by its ID must return 200 OK with its data.
      */
     @Test
     void getBusinessById_returns200_whenFound() throws Exception {
-        when(businessService.getBusinessById(10L, 1L)).thenReturn(sampleResponse);
+        when(businessService.getBusinessById(10L)).thenReturn(sampleResponse);
 
         mockMvc.perform(get("/api/v1/businesses/10")
                         .with(user(authenticatedUser)))
@@ -240,26 +261,12 @@ class BusinessControllerTest {
      */
     @Test
     void getBusinessById_returns404_whenNotFound() throws Exception {
-        when(businessService.getBusinessById(999L, 1L))
+        when(businessService.getBusinessById(999L))
                 .thenThrow(new ResourceNotFoundException("Business not found with id: 999"));
 
         mockMvc.perform(get("/api/v1/businesses/999")
                         .with(user(authenticatedUser)))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").exists());
-    }
-
-    /**
-     * Fetching a business owned by a different user must return 403 Forbidden.
-     */
-    @Test
-    void getBusinessById_returns403_whenOwnerMismatch() throws Exception {
-        when(businessService.getBusinessById(10L, 1L))
-                .thenThrow(new UnauthorizedException("You do not have permission to access this business"));
-
-        mockMvc.perform(get("/api/v1/businesses/10")
-                        .with(user(authenticatedUser)))
-                .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").exists());
     }
 

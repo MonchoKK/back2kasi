@@ -72,13 +72,13 @@ public class RentalUnitController {
     /**
      * List rental units, optionally filtered by business.
      *
-     * <p>Accepts an optional {@code ?businessId=} query parameter. If omitted,
-     * returns an empty list — a global unfiltered listing is not supported in the
-     * MVP to avoid unbounded queries on a growing dataset.</p>
+     * <p>Accepts an optional {@code ?businessId=} query parameter. If provided,
+     * returns all units for that business. If omitted, returns all
+     * {@code AVAILABLE} units across the platform (public browse).</p>
      *
      * <p>This endpoint is public — no JWT required.</p>
      *
-     * @param businessId optional filter; if null, returns an empty list
+     * @param businessId optional filter; if null, returns all available units
      * @return {@code 200 OK} with the list of rental units
      */
     @GetMapping
@@ -86,7 +86,7 @@ public class RentalUnitController {
             @RequestParam(required = false) Long businessId) {
 
         if (businessId == null) {
-            return ResponseEntity.ok(List.of());
+            return ResponseEntity.ok(rentalUnitService.getAllAvailableUnits());
         }
 
         return ResponseEntity.ok(rentalUnitService.getRentalUnitsByBusiness(businessId));

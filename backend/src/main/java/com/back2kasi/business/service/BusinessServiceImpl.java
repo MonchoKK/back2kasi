@@ -112,25 +112,27 @@ public class BusinessServiceImpl implements BusinessService {
 
     /**
      * {@inheritDoc}
-     *
-     * <p>Two-step lookup:</p>
-     * <ol>
-     *   <li>Fetch by {@code id} — throws {@link ResourceNotFoundException} if absent.</li>
-     *   <li>Verify {@code business.owner.id == ownerId} — throws {@link UnauthorizedException}
-     *       if not owned by the caller.</li>
-     * </ol>
-     *
-     * <p>The two-step approach gives precise error messages. A single
-     * {@code existsByIdAndOwnerId} check would return the same result for
-     * "not found" and "wrong owner", making debugging harder.</p>
      */
     @Override
     @Transactional(readOnly = true)
-    public BusinessResponse getBusinessById(Long id, Long ownerId) {
-        log.debug("Fetching businessId={} for ownerId={}", id, ownerId);
+    public List<BusinessResponse> getAllBusinesses() {
+        log.debug("Fetching all businesses on the platform");
+
+        return businessRepository.findAll()
+                .stream()
+                .map(BusinessResponse::from)
+                .toList();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public BusinessResponse getBusinessById(Long id) {
+        log.debug("Fetching businessId={}", id);
 
         Business business = findOrThrow(id);
-        verifyOwnership(business, ownerId);
 
         return BusinessResponse.from(business);
     }

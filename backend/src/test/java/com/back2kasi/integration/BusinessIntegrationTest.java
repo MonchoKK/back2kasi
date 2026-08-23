@@ -88,8 +88,17 @@ class BusinessIntegrationTest extends BaseIntegrationTest {
     // =========================================================
 
     @Test
-    void getMyBusinesses_returns200_withOwnerBusinesses() throws Exception {
+    void getAllBusinesses_returns200_withAllPlatformBusinesses() throws Exception {
         mockMvc.perform(get("/api/v1/businesses")
+                        .header("Authorization", bearer(ownerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].name").value("Kasi Toilets"));
+    }
+
+    @Test
+    void getMyBusinesses_returns200_withOwnerBusinesses() throws Exception {
+        mockMvc.perform(get("/api/v1/businesses/my")
                         .header("Authorization", bearer(ownerToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
@@ -106,13 +115,13 @@ class BusinessIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void getBusinessById_returns403_whenOtherUserRequests() throws Exception {
+    void getBusinessById_returns200_whenOtherUserRequests() throws Exception {
+        // Other authenticated user can view business details (Discovery flow)
         mockMvc.perform(get("/api/v1/businesses/" + businessId)
                         .header("Authorization", bearer(otherToken)))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(403))
-                .andExpect(jsonPath("$.error").value("Forbidden"))
-                .andExpect(jsonPath("$.message").isNotEmpty());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(businessId))
+                .andExpect(jsonPath("$.name").value("Kasi Toilets"));
     }
 
     @Test

@@ -52,6 +52,16 @@ public interface RentalUnitService {
     RentalUnitResponse getRentalUnitById(Long id);
 
     /**
+     * Retrieve all rental units with {@code AVAILABLE} status across all businesses.
+     *
+     * <p>Public — no ownership check required. Used by the customer-facing
+     * browse endpoint to list everything available on the platform.</p>
+     *
+     * @return list of available rental units; empty list if none exist
+     */
+    List<RentalUnitResponse> getAllAvailableUnits();
+
+    /**
      * Update all mutable fields of an existing rental unit, enforcing ownership.
      *
      * @param id      the primary key of the unit to update

@@ -60,4 +60,15 @@ public interface RentalUnitRepository extends JpaRepository<RentalUnit, Long> {
      * @return {@code true} if the unit exists AND its business is owned by the given user
      */
     boolean existsByIdAndBusiness_OwnerId(Long id, Long ownerId);
+
+    /**
+     * Find all rental units with a given status, across all businesses.
+     *
+     * <p>Used by the public browse endpoint to list all {@code AVAILABLE}
+     * units platform-wide. SQL: {@code WHERE status = ?}</p>
+     *
+     * @param status the status to filter by
+     * @return list of matching rental units; empty if none match
+     */
+    List<RentalUnit> findByStatus(RentalUnitStatus status);
 }

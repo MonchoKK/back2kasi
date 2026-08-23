@@ -193,18 +193,45 @@ class BusinessServiceImplTest {
     }
 
     // =========================================================
-    // getBusinessById
+    // getAllBusinesses & getBusinessById
     // =========================================================
 
     /**
-     * When the business exists and the caller is the owner, the correct
-     * response DTO must be returned.
+     * The service must return all businesses on the platform mapped to response DTOs.
      */
     @Test
-    void getBusinessById_returnsResponse_whenOwnerMatches() {
+    void getAllBusinesses_returnsAllRegisteredBusinesses() {
+        // ARRANGE
+        Business second = Business.builder()
+                .id(11L)
+                .name("Cold Kings")
+                .address("456 Alex Rd")
+                .phoneNumber("+27722222222")
+                .businessType(BusinessType.COLD_ROOM_RENTAL)
+                .owner(otherUser)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        when(businessRepository.findAll()).thenReturn(List.of(business, second));
+
+        // ACT
+        List<BusinessResponse> result = businessService.getAllBusinesses();
+
+        // ASSERT
+        assertThat(result).hasSize(2);
+        assertThat(result).extracting(BusinessResponse::name)
+                .containsExactly("Kasi Toilets", "Cold Kings");
+    }
+
+    /**
+     * When the business exists, the correct response DTO must be returned regardless of caller.
+     */
+    @Test
+    void getBusinessById_returnsResponse_whenFound() {
         when(businessRepository.findById(10L)).thenReturn(Optional.of(business));
 
-        BusinessResponse response = businessService.getBusinessById(10L, 1L);
+        BusinessResponse response = businessService.getBusinessById(10L);
 
         assertThat(response.id()).isEqualTo(10L);
         assertThat(response.name()).isEqualTo("Kasi Toilets");
@@ -217,23 +244,9 @@ class BusinessServiceImplTest {
     void getBusinessById_throwsResourceNotFound_whenBusinessDoesNotExist() {
         when(businessRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> businessService.getBusinessById(999L, 1L))
+        assertThatThrownBy(() -> businessService.getBusinessById(999L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Business not found with id: 999");
-    }
-
-    /**
-     * When the business exists but belongs to a different user,
-     * UnauthorizedException must be thrown.
-     */
-    @Test
-    void getBusinessById_throwsUnauthorized_whenOwnerMismatch() {
-        when(businessRepository.findById(10L)).thenReturn(Optional.of(business));
-
-        // otherUser has id=2, business is owned by owner (id=1)
-        assertThatThrownBy(() -> businessService.getBusinessById(10L, 2L))
-                .isInstanceOf(UnauthorizedException.class)
-                .hasMessageContaining("permission");
     }
 
     // =========================================================

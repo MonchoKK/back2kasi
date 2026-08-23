@@ -1,26 +1,35 @@
 // ignore_for_file: slash_for_doc_comments, deprecated_member_use
 import 'package:flutter/material.dart';
 import '../customer/browse_screen.dart';
+import '../booking/my_bookings_screen.dart';
 import '../business/business_list_screen.dart';
 
 /**
- * Main shell routing authenticated traffic between Customer Mode and Owner Mode.
+ * Main shell routing authenticated traffic between Browse, My Bookings, and Owner Mode.
  *
  * <p>Wraps a BottomNavigationBar supporting transitions between rentals browsing
- * (index 0) and business profiles listing (index 1).</p>
+ * (index 0), booking history (index 1), and business profiles listing (index 2).</p>
  */
 class MainNavigationShell extends StatefulWidget {
-  const MainNavigationShell({super.key});
+  final int initialIndex;
+  const MainNavigationShell({super.key, this.initialIndex = 0});
 
   @override
   State<MainNavigationShell> createState() => _MainNavigationShellState();
 }
 
 class _MainNavigationShellState extends State<MainNavigationShell> {
-  int _currentIndex = 0;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
 
   final List<Widget> _screens = const [
     BrowseScreen(),
+    MyBookingsScreen(),
     BusinessListScreen(),
   ];
 
@@ -57,6 +66,11 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               icon: Icon(Icons.search_outlined),
               activeIcon: Icon(Icons.search),
               label: 'Browse',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today_outlined),
+              activeIcon: Icon(Icons.calendar_today),
+              label: 'My Bookings',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.storefront_outlined),

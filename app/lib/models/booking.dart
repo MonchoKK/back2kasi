@@ -17,6 +17,8 @@ class Booking {
   final BookingStatus status;
   final int rentalUnitId;
   final int customerId;
+  final String? notes;
+  final DateTime? createdAt;
 
   Booking({
     required this.id,
@@ -26,6 +28,8 @@ class Booking {
     required this.status,
     required this.rentalUnitId,
     required this.customerId,
+    this.notes,
+    this.createdAt,
   });
 
   factory Booking.fromJson(Map<String, dynamic> json) {
@@ -40,6 +44,10 @@ class Booking {
       ),
       rentalUnitId: json['rentalUnitId'] as int,
       customerId: json['customerId'] as int,
+      notes: json['notes'] as String?,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'] as String)
+          : null,
     );
   }
 
@@ -53,6 +61,8 @@ class Booking {
       'status': status.toString().split('.').last,
       'rentalUnitId': rentalUnitId,
       'customerId': customerId,
+      'notes': notes,
     };
   }
 }
+

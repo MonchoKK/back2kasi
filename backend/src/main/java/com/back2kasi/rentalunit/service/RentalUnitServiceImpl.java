@@ -8,6 +8,7 @@ import com.back2kasi.rentalunit.dto.CreateRentalUnitRequest;
 import com.back2kasi.rentalunit.dto.RentalUnitResponse;
 import com.back2kasi.rentalunit.dto.UpdateRentalUnitRequest;
 import com.back2kasi.rentalunit.entity.RentalUnit;
+import com.back2kasi.rentalunit.entity.RentalUnitStatus;
 import com.back2kasi.rentalunit.repository.RentalUnitRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -120,6 +121,23 @@ public class RentalUnitServiceImpl implements RentalUnitService {
         log.debug("Fetching rentalUnitId={}", id);
 
         return RentalUnitResponse.from(findOrThrow(id));
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Returns all rental units with {@code AVAILABLE} status, regardless of
+     * which business they belong to. No ownership check — public browse.</p>
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<RentalUnitResponse> getAllAvailableUnits() {
+        log.debug("Fetching all AVAILABLE rental units for public browse");
+
+        return rentalUnitRepository.findByStatus(RentalUnitStatus.AVAILABLE)
+                .stream()
+                .map(RentalUnitResponse::from)
+                .toList();
     }
 
     // =========================================================

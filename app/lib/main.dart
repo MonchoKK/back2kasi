@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'config/app_theme.dart';
 import 'core/auth_service.dart';
+import 'core/booking_provider.dart';
 import 'core/business_provider.dart';
 import 'core/rental_unit_provider.dart';
 import 'views/auth/login_screen.dart';
@@ -21,6 +22,9 @@ void main() {
         ),
         ChangeNotifierProvider(
           create: (_) => RentalUnitProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => BookingProvider(),
         ),
       ],
       child: const Back2KasiApp(),

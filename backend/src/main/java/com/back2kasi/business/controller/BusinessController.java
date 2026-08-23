@@ -67,7 +67,25 @@ public class BusinessController {
     }
 
     // =========================================================
-    // GET /api/v1/businesses
+    // =========================================================
+    // GET /api/v1/businesses (Discovery — all businesses)
+    // =========================================================
+
+    /**
+     * Retrieve all registered businesses on the platform.
+     *
+     * <p>Public/customer discovery — returns all businesses.</p>
+     *
+     * @return {@code 200 OK} with the list of all businesses
+     */
+    @GetMapping
+    public ResponseEntity<List<BusinessResponse>> getAllBusinesses() {
+        List<BusinessResponse> businesses = businessService.getAllBusinesses();
+        return ResponseEntity.ok(businesses);
+    }
+
+    // =========================================================
+    // GET /api/v1/businesses/my (Owned businesses)
     // =========================================================
 
     /**
@@ -79,7 +97,7 @@ public class BusinessController {
      * @param currentUser the authenticated user
      * @return {@code 200 OK} with the list of the caller's businesses (may be empty)
      */
-    @GetMapping
+    @GetMapping("/my")
     public ResponseEntity<List<BusinessResponse>> getMyBusinesses(
             @AuthenticationPrincipal User currentUser) {
 
@@ -92,21 +110,17 @@ public class BusinessController {
     // =========================================================
 
     /**
-     * Retrieve a specific business by ID, enforcing ownership.
+     * Retrieve a specific business by ID.
      *
-     * <p>Returns {@code 404 Not Found} if the business does not exist, or
-     * {@code 403 Forbidden} if it belongs to a different user.</p>
+     * <p>Returns {@code 404 Not Found} if the business does not exist. No ownership
+     * verification is enforced since business profile details are public discovery info.</p>
      *
      * @param id          the business primary key from the URL path
-     * @param currentUser the authenticated user
      * @return {@code 200 OK} with the {@link BusinessResponse}
      */
     @GetMapping("/{id}")
-    public ResponseEntity<BusinessResponse> getBusinessById(
-            @PathVariable Long id,
-            @AuthenticationPrincipal User currentUser) {
-
-        BusinessResponse response = businessService.getBusinessById(id, currentUser.getId());
+    public ResponseEntity<BusinessResponse> getBusinessById(@PathVariable Long id) {
+        BusinessResponse response = businessService.getBusinessById(id);
         return ResponseEntity.ok(response);
     }
 

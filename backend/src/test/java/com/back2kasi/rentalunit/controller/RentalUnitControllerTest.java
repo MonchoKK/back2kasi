@@ -181,12 +181,16 @@ class RentalUnitControllerTest {
     }
 
     @Test
-    void getRentalUnits_returns200_withEmptyList_whenNoBusinessIdProvided() throws Exception {
-        // No businessId param → controller returns empty list without calling service
+    void getRentalUnits_returns200_withAvailableUnits_whenNoBusinessIdProvided() throws Exception {
+        // No businessId param → controller calls getAllAvailableUnits (public browse)
+        when(rentalUnitService.getAllAvailableUnits()).thenReturn(List.of(sampleResponse));
+
         mockMvc.perform(get("/api/v1/rental-units"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].name").value("Unit A"));
 
+        verify(rentalUnitService).getAllAvailableUnits();
         verify(rentalUnitService, never()).getRentalUnitsByBusiness(any());
     }
 
