@@ -104,11 +104,11 @@ void main() {
       expect(find.text('Review Booking'), findsOneWidget);
       expect(find.text('Kasi Toilets Co'), findsOneWidget);
       expect(find.text('VIP Toilet Luxury (VIP TOILET)'), findsOneWidget);
-      expect(find.text('2 Day(s)'), findsOneWidget);
+      expect(find.text('3 Day(s)'), findsOneWidget);
       expect(find.text('Leave near the fence'), findsOneWidget);
 
-      // Estimated price (R500 * 2 = R1000)
-      expect(find.text('R 1000.00'), findsOneWidget);
+      // Estimated price (R500 * 3 = R1500)
+      expect(find.text('R 1500.00'), findsOneWidget);
     });
 
     testWidgets('Tapping Request Booking shows spinner, calls api, and redirects to success', (WidgetTester tester) async {

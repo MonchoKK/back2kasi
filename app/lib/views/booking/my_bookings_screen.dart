@@ -249,7 +249,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                   const Icon(Icons.timer_outlined, size: 16, color: Colors.grey),
                   const SizedBox(width: 8),
                   Text(
-                    '${booking.endDate.difference(booking.startDate).inDays} day(s)',
+                    '${booking.endDate.difference(booking.startDate).inDays + 1} day(s)',
                     style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
                   ),
                   const Spacer(),

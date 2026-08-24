@@ -101,7 +101,7 @@ class _OwnerBookingDetailsScreenState extends State<OwnerBookingDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final String typeLabel = _currentBooking.rentalUnitName ?? 'Rental Unit';
-    final int numberOfDays = _currentBooking.endDate.difference(_currentBooking.startDate).inDays;
+    final int numberOfDays = _currentBooking.endDate.difference(_currentBooking.startDate).inDays + 1;
 
     // Status styling
     Color badgeColor;

@@ -24,7 +24,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
 
   int get _numberOfDays {
     if (_selectedRange == null) return 0;
-    return _selectedRange!.end.difference(_selectedRange!.start).inDays;
+    return _selectedRange!.end.difference(_selectedRange!.start).inDays + 1;
   }
 
   double get _totalPrice {
@@ -57,10 +57,10 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
     );
 
     if (picked != null) {
-      // Validate: end date must be after start date (min 1 day duration)
-      if (picked.end.difference(picked.start).inDays < 1) {
+      // Validate: end date must not be before start date
+      if (picked.end.isBefore(picked.start)) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Booking duration must be at least 1 day')),
+          const SnackBar(content: Text('Invalid date range selection')),
         );
         return;
       }

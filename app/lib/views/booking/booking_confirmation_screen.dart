@@ -36,7 +36,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
   bool _isSubmitting = false;
   String? _localError;
 
-  int get _numberOfDays => widget.endDate.difference(widget.startDate).inDays;
+  int get _numberOfDays => widget.endDate.difference(widget.startDate).inDays + 1;
   double get _totalPrice => widget.unit.pricePerDay * _numberOfDays;
 
   Future<void> _submitBooking() async {
