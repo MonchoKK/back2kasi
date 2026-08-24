@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # Relational Database service (PostgreSQL)
+  db:
+    image: postgres:16-alpine
+    container_name: back2kasi-postgres-prod
+    environment:
+      POSTGRES_DB: back2kasi_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-production_secure_db_password_change_me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - back2kasi-network
+    # Exposing the port locally for administrative connectivity (e.g. pgAdmin).
+    # In a real cloud production environment, you should omit ports mapping on the database
+    # and restrict ingress traffic strictly to the backend application service.
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  # Backend REST API service (Spring Boot)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: back2kasi-backend-prod
+    depends_on:
+      - db
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db:5432/back2kasi_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: ${DB_PASSWORD:-production_secure_db_password_change_me}
+      JWT_SECRET: ${JWT_SECRET:-production_jwt_signing_secret_key_must_be_long_and_secure}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8080}
+    ports:
+      - "8080:8080"
+    networks:
+      - back2kasi-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  back2kasi-network:
+    driver: bridge

@@ -53,6 +53,8 @@ public class SecurityConfig {
             JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
 
         http
+                // Enable CORS — automatically resolves CorsConfigurationSource bean
+                .cors(cors -> {})
                 // Disable CSRF — not needed with JWT in Authorization header
                 .csrf(AbstractHttpConfigurer::disable)
 

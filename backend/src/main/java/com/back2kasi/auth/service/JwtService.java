@@ -4,6 +4,7 @@ import com.back2kasi.user.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -45,6 +46,24 @@ public class JwtService {
      */
     @Value("${app.jwt.expiration-ms}")
     private long jwtExpirationMs;
+
+    @Value("${spring.profiles.active:}")
+    private String activeProfiles;
+
+    /**
+     * Asserts that the insecure local development secret is not used in production.
+     * Throws an IllegalStateException if the 'prod' profile is active but the key matches the default.
+     */
+    @PostConstruct
+    public void validateKeySafety() {
+        if (activeProfiles != null && activeProfiles.contains("prod") &&
+                "back2kasi-local-dev-secret-please-change-in-production".equals(jwtSecret)) {
+            throw new IllegalStateException(
+                    "CRITICAL SECURITY ERROR: The default development JWT secret key " +
+                    "must not be used in the production profile."
+            );
+        }
+    }
 
     // =========================================================
     // Public API

@@ -129,6 +129,22 @@
             Also requires: OpenApiConfig.java + SecurityConfig permit /swagger-ui/** routes
         -->
 
+        <!-- Database migrations -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
+        <!-- Production Monitoring & Health checks -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!--
             H2 in-memory database — used exclusively in the 'test' profile for
             integration tests. Provides a real relational database without requiring

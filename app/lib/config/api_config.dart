@@ -20,7 +20,13 @@ class ApiConfig {
   // Override this local IP when testing on a physical device.
   static const String _hostPcIp = '192.168.1.100'; 
   
+  // Environment variable set at build-time using: --dart-define=API_BASE_URL=https://api.back2kasi.co.za
+  static const String _apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+  
   static String get baseUrl {
+    if (_apiBaseUrl.isNotEmpty) {
+      return _apiBaseUrl;
+    }
     // If we are running in a web context, Platform.isAndroid will throw.
     // However, since this is a pure mobile setup (Android/iOS), Platform is safe.
     if (Platform.isAndroid) {
