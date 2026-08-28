@@ -69,7 +69,7 @@ public class SecurityConfig {
                         // Public: customers can browse rental units without logging in
                         .requestMatchers(HttpMethod.GET, "/api/v1/rental-units", "/api/v1/rental-units/**").permitAll()
                         // Public: Swagger UI and OpenAPI spec (disabled in prod profile)
-                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/actuator/health").permitAll()
                         // Everything else requires a valid JWT
                         .anyRequest().authenticated()
                 )
