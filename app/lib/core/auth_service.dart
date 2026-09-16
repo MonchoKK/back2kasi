@@ -33,15 +33,14 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final hasSession = await _secureStorage.hasSession();
-      if (hasSession) {
-        _token = await _secureStorage.getToken();
-        _userId = await _secureStorage.getUserId();
-        _userEmail = await _secureStorage.getUserEmail();
+      final token = await _secureStorage.getToken();
+      if (token != null && token.isNotEmpty) {
+        _token = token;
+        _userId = await _secureStorage.getUserId() ?? '1';
+        _userEmail = await _secureStorage.getUserEmail() ?? '';
       }
     } catch (e) {
-      // Session load failed (corrupted secure storage, etc.) — clear state
-      await _secureStorage.clearSession();
+      debugPrint('tryAutoLogin error: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -67,12 +66,11 @@ class AuthService extends ChangeNotifier {
         }),
       );
 
-      final responseBody = jsonDecode(response.body);
-
       if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
         // Successful login
         _token = responseBody['token'];
-        _userEmail = responseBody['email'];
+        _userEmail = responseBody['email'] ?? email;
         // Defaulting ID to stub for now since backend token payload acts as verification
         _userId = '1'; 
 
@@ -82,8 +80,19 @@ class AuthService extends ChangeNotifier {
           email: _userEmail!,
         );
       } else {
-        // Handle standardized ApiError format
-        final errorMessage = responseBody['message'] ?? 'Login failed';
+        String errorMessage = 'Login failed (HTTP ${response.statusCode})';
+        try {
+          final responseBody = jsonDecode(response.body);
+          if (responseBody is Map<String, dynamic> && responseBody['message'] != null) {
+            errorMessage = responseBody['message'];
+          }
+        } catch (_) {
+          if (response.statusCode == 404) {
+            errorMessage = 'Backend endpoint not found (HTTP 404). Please verify the server URL.';
+          } else if (response.statusCode >= 500) {
+            errorMessage = 'Server error (HTTP ${response.statusCode}). Please check if backend is running.';
+          }
+        }
         throw Exception(errorMessage);
       }
     } catch (e) {
@@ -126,14 +135,28 @@ class AuthService extends ChangeNotifier {
         // Registration success. User can now transition to login.
         return;
       } else {
-        final responseBody = jsonDecode(response.body);
-        if (responseBody['fieldErrors'] != null) {
-          // Flatten field-level validation errors
-          final Map<String, dynamic> errors = responseBody['fieldErrors'];
-          final validationMsg = errors.values.join(', ');
-          throw Exception(validationMsg);
+        String errorMessage = 'Registration failed (HTTP ${response.statusCode})';
+        try {
+          final responseBody = jsonDecode(response.body);
+          if (responseBody is Map<String, dynamic>) {
+            if (responseBody['fieldErrors'] != null) {
+              final Map<String, dynamic> errors = responseBody['fieldErrors'];
+              throw Exception(errors.values.join(', '));
+            }
+            if (responseBody['message'] != null) {
+              errorMessage = responseBody['message'];
+            }
+          }
+        } catch (e) {
+          if (e is Exception && !e.toString().contains('FormatException')) {
+            rethrow;
+          }
+          if (response.statusCode == 404) {
+            errorMessage = 'Backend endpoint not found (HTTP 404). Please verify the server URL.';
+          } else if (response.statusCode >= 500) {
+            errorMessage = 'Server error (HTTP ${response.statusCode}). Please check if backend is running.';
+          }
         }
-        final errorMessage = responseBody['message'] ?? 'Registration failed';
         throw Exception(errorMessage);
       }
     } catch (e) {

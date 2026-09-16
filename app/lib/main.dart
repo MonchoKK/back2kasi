@@ -10,12 +10,17 @@ import 'views/auth/login_screen.dart';
 import 'views/auth/register_screen.dart';
 import 'views/shared/main_navigation_shell.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final authService = AuthService();
+  await authService.tryAutoLogin();
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => AuthService()..tryAutoLogin(),
+        ChangeNotifierProvider.value(
+          value: authService,
         ),
         ChangeNotifierProvider(
           create: (_) => BusinessProvider(),
