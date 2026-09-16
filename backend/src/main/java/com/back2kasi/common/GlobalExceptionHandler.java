@@ -2,6 +2,7 @@ package com.back2kasi.common;
 
 import com.back2kasi.common.exception.ResourceNotFoundException;
 import com.back2kasi.common.exception.UnauthorizedException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -33,6 +34,7 @@ import java.util.Map;
  *   <tr><td>IllegalStateException</td><td>409</td><td>Business rule conflict (e.g. duplicate email, booking overlap)</td></tr>
  * </table>
  */
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -107,5 +109,44 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(ApiError.of(409, "Conflict", ex.getMessage()));
+    }
+
+    /**
+     * Handle illegal argument exceptions — e.g. invalid date range, past dates.
+     *
+     * <p>Returns {@code 400 Bad Request}.</p>
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiError.of(400, "Bad Request", ex.getMessage()));
+    }
+
+    /**
+     * Handle malformed JSON body or invalid enum values.
+     *
+     * <p>Returns {@code 400 Bad Request}.</p>
+     */
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleNotReadable(org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiError.of(400, "Bad Request", "Malformed JSON request body or invalid value"));
+    }
+
+    /**
+     * Fallback handler for all unexpected exceptions.
+     *
+     * <p>Logs full stack trace internally for troubleshooting, but returns
+     * a clean, sanitized {@code 500 Internal Server Error} without exposing
+     * database details, table names, or internal stack traces to the client.</p>
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiError> handleGeneralException(Exception ex) {
+        log.error("Unhandled exception caught by GlobalExceptionHandler: ", ex);
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiError.of(500, "Internal Server Error", "An unexpected error occurred. Please try again later."));
     }
 }

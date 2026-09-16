@@ -87,7 +87,7 @@ class AuthService extends ChangeNotifier {
         throw Exception(errorMessage);
       }
     } catch (e) {
-      rethrow;
+      _handleNetworkError(e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -137,11 +137,27 @@ class AuthService extends ChangeNotifier {
         throw Exception(errorMessage);
       }
     } catch (e) {
-      rethrow;
+      _handleNetworkError(e);
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  void _handleNetworkError(dynamic e) {
+    if (e is FormatException) {
+      throw Exception('Server returned an unexpected response format. Please try again later.');
+    }
+    final msg = e.toString().toLowerCase();
+    if (msg.contains('socketexception') ||
+        msg.contains('failed host lookup') ||
+        msg.contains('connection refused') ||
+        msg.contains('clientexception') ||
+        msg.contains('timeoutexception') ||
+        msg.contains('connection reset')) {
+      throw Exception('Unable to connect to server. Please check your internet connection and try again.');
+    }
+    throw e;
   }
 
   /**

@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,19 +26,20 @@ import java.io.IOException;
  *
  * <ol>
  *   <li><strong>Read</strong> the {@code Authorization: Bearer <token>} header.</li>
- *   <li><strong>Parse</strong> the token to extract the user's email.</li>
+ *   <li><strong>Parse</strong> the token to extract the user's email safely.</li>
  *   <li><strong>Load</strong> the user from the database and validate the token.</li>
  *   <li><strong>Set</strong> the authenticated user in the {@code SecurityContext},
  *       so downstream code (other filters, controllers) knows who is making the request.</li>
  * </ol>
  *
  * <p>If any step fails (missing header, invalid token, expired token) the filter
- * simply passes the request along unchanged — Spring Security's own rules will
- * then reject it with a {@code 401 Unauthorized} if the route is protected.</p>
+ * catches the exception and passes the request along unauthenticated — Spring Security's
+ * own rules and AuthenticationEntryPoint will then reject it with 401 Unauthorized.</p>
  *
  * <p>{@code OncePerRequestFilter} guarantees this runs exactly once, even in
  * servlet environments that might forward requests internally.</p>
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -63,31 +65,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         // 2. Extract the raw JWT (everything after "Bearer ")
-        final String jwt       = authHeader.substring(7);
-        final String userEmail = jwtService.extractEmail(jwt);
+        final String jwt = authHeader.substring(7);
+        String userEmail = null;
+        try {
+            userEmail = jwtService.extractEmail(jwt);
+        } catch (Exception e) {
+            log.warn("Invalid or expired JWT token: {}", e.getMessage());
+        }
 
         // 3. Only authenticate if we have an email AND the security context is empty.
         //    If the context already has an authentication object, someone else already
         //    authenticated this request (e.g. a previous filter) — don't override it.
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            try {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
 
-            UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+                if (jwtService.isTokenValid(jwt, userDetails)) {
+                    // 4. Token is valid — create an authentication token and set it in the context.
+                    //    From this point on, Spring Security treats the request as authenticated.
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,                          // credentials — not needed after authentication
+                                    userDetails.getAuthorities()   // e.g. [ROLE_USER]
+                            );
 
-            if (jwtService.isTokenValid(jwt, userDetails)) {
-                // 4. Token is valid — create an authentication token and set it in the context.
-                //    From this point on, Spring Security treats the request as authenticated.
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,                          // credentials — not needed after authentication
-                                userDetails.getAuthorities()   // e.g. [ROLE_USER]
-                        );
+                    // Attach request details (IP, session) to the authentication object
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                // Attach request details (IP, session) to the authentication object
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                // Place authentication into the thread-local security context
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                    // Place authentication into the thread-local security context
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to set user authentication: {}", e.getMessage());
             }
         }
 

@@ -214,10 +214,30 @@ public class BookingServiceImpl implements BookingService {
                 if (!isOwner) {
                     throw new UnauthorizedException("Only the business owner can confirm a booking");
                 }
+                // Acquire pessimistic write lock on the RentalUnit row to eliminate concurrency race conditions
+                RentalUnit lockedUnit = rentalUnitRepository.findByIdWithLock(booking.getRentalUnit().getId())
+                        .orElse(booking.getRentalUnit());
+
+                // Re-verify overlap under lock before confirming
+                boolean overlap = bookingRepository.existsOverlappingBooking(
+                        lockedUnit.getId(),
+                        booking.getStartDate(),
+                        booking.getEndDate(),
+                        BookingStatus.CONFIRMED,
+                        booking.getId()
+                );
+                if (overlap) {
+                    throw new IllegalStateException(
+                            "Cannot confirm booking: The rental unit is already booked for the requested date range"
+                    );
+                }
+
                 booking.setStatus(BookingStatus.CONFIRMED);
-                booking.getRentalUnit().setStatus(RentalUnitStatus.RENTED);
+                lockedUnit.setStatus(RentalUnitStatus.RENTED);
+                booking.setRentalUnit(lockedUnit);
+                rentalUnitRepository.save(lockedUnit);
                 log.info("Booking id={} confirmed — rentalUnit id={} set to RENTED",
-                        id, booking.getRentalUnit().getId());
+                        id, lockedUnit.getId());
             }
             case COMPLETED -> {
                 if (!isOwner) {
@@ -270,11 +290,14 @@ public class BookingServiceImpl implements BookingService {
     }
 
     /**
-     * Validate that {@code startDate} is not after {@code endDate}.
+     * Validate that {@code startDate} is not in the past and not after {@code endDate}.
      *
      * @throws IllegalStateException if the date range is invalid
      */
     private void validateDateRange(CreateBookingRequest request) {
+        if (request.startDate().isBefore(java.time.LocalDate.now())) {
+            throw new IllegalStateException("Start date cannot be in the past");
+        }
         if (request.startDate().isAfter(request.endDate())) {
             throw new IllegalStateException("Start date must not be after end date");
         }

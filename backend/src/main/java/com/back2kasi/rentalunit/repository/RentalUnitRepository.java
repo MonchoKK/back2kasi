@@ -2,9 +2,14 @@ package com.back2kasi.rentalunit.repository;
 
 import com.back2kasi.rentalunit.entity.RentalUnit;
 import com.back2kasi.rentalunit.entity.RentalUnitStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Data access layer for {@link RentalUnit} entities.
@@ -71,4 +76,15 @@ public interface RentalUnitRepository extends JpaRepository<RentalUnit, Long> {
      * @return list of matching rental units; empty if none match
      */
     List<RentalUnit> findByStatus(RentalUnitStatus status);
+
+    /**
+     * Fetch a rental unit with a pessimistic write lock (SELECT ... FOR UPDATE).
+     * Prevents race conditions during booking confirmations and status changes.
+     *
+     * @param id the primary key of the rental unit
+     * @return optional containing the locked unit if found
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM RentalUnit r WHERE r.id = :id")
+    Optional<RentalUnit> findByIdWithLock(@Param("id") Long id);
 }
