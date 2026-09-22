@@ -29,23 +29,33 @@ Back2Kasi is a full-stack platform built to help people find and book rental uni
 
 ## Tech Stack
 
-### Backend (`/backend`)
+### Backend (Cloudflare Worker — Production) (`/worker`)
+
+| Technology | Purpose |
+|---|---|
+| Cloudflare Workers | Serverless Edge Runtime (Free Tier: 100k req/day) |
+| Cloudflare D1 | Distributed SQLite Database (Free Tier: 5GB, 5M reads/day) |
+| Hono | Ultra-fast Edge Web Framework with TypeScript |
+| Web Crypto API (HS256) | Zero-overhead JWT authentication |
+| bcryptjs | Password hashing compatible with edge runtime |
+| Wrangler | Cloudflare CLI & local simulation |
+
+### Legacy Backend (Spring Boot) (`/backend`)
 
 | Technology | Version | Purpose |
 |---|---|---|
 | Java | 21 | Language |
 | Spring Boot | 3.5.3 | Application framework |
-| Spring Data JPA | — | ORM / database access |
-| Hibernate | 6.6.x | JPA implementation |
+| Spring Data JPA / Hibernate | — | ORM / database access |
 | PostgreSQL | 18.x | Relational database |
-| Lombok | — | Boilerplate reduction |
-| Spring Validation | — | Request validation |
-| Spring DevTools | — | Auto-restart on save |
-| Maven | 3.x | Build tool |
 
 ### Frontend (`/app`)
 
-> To be documented.
+| Technology | Purpose |
+|---|---|
+| Flutter / Dart | Cross-platform mobile (Android/iOS) client |
+| Provider | State management |
+| Flutter Secure Storage | Secure credential storage |
 
 ---
 
@@ -53,19 +63,19 @@ Back2Kasi is a full-stack platform built to help people find and book rental uni
 
 ```
 back2kasi/
-├── backend/                        ← Spring Boot REST API
-│   └── src/main/java/com/back2kasi/
-│       ├── Back2KasiApplication.java
-│       ├── config/                 ← Cross-cutting config (Security, CORS, …)
-│       ├── common/                 ← Shared utilities, exceptions, response wrapper
-│       ├── auth/                   ← Authentication & authorisation
-│       ├── business/               ← Business/owner profiles
-│       ├── booking/                ← Reservation lifecycle
-│       └── rentalunit/             ← Rental unit listings & availability
+├── worker/                         ← Cloudflare Worker REST API (Active)
+│   ├── src/
+│   │   ├── index.ts                ← Entrypoint, CORS, error handling
+│   │   ├── types.ts                ← Type definitions & DTOs
+│   │   ├── lib/                    ← JWT & error utilities
+│   │   ├── middleware/             ← Auth middleware
+│   │   └── routes/                 ← Auth, Businesses, Rental Units, Bookings
+│   ├── migrations/                 ← D1 SQLite database migrations
+│   └── wrangler.jsonc              ← Worker & D1 binding configuration
 │
-├── app/                            ← Mobile / frontend application
+├── app/                            ← Flutter mobile application
+├── backend/                        ← Original Spring Boot API (reference)
 ├── docs/                           ← Project-level documentation
-│   └── DEVELOPMENT_STANDARDS.md
 └── README.MD
 ```
 

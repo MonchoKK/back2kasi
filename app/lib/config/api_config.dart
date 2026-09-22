@@ -1,42 +1,44 @@
 // ignore_for_file: slash_for_doc_comments
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 /**
  * Global configuration for API endpoints and connection settings.
  *
- * <h2>Local Development Networking</h2>
- * <p>When connecting to a Spring Boot service running on {@code localhost:8080}
- * from a mobile client, the default "localhost" loopback points to the mobile
- * device itself, not the hosting computer.</p>
- *
+ * <h2>Environment Routing</h2>
  * <ul>
- *   <li><strong>Android Emulator:</strong> Routes traffic through {@code 10.0.2.2:8080}.</li>
- *   <li><strong>iOS Simulator:</strong> Renders on the host network, so {@code localhost:8080} works directly.</li>
- *   <li><strong>Physical Device:</strong> Requires the host PC's local IP address (e.g. {@code 192.168.1.100:8080})
- *       and both devices must be connected to the same Wi-Fi network.</li>
+ *   <li><strong>Production (Release Build):</strong> Defaults automatically to
+ *       `https://back2kasi-api.back2kasi.workers.dev`.</li>
+ *   <li><strong>Local Dev (Debug Build):</strong> Connects to local Wrangler dev server (port 8787).</li>
+ *   <li><strong>Override:</strong> Pass `--dart-define=API_BASE_URL=https://...` at build time.</li>
  * </ul>
  */
 class ApiConfig {
   // Override this local IP when testing on a physical device.
   static const String _hostPcIp = '192.168.1.100'; 
   
-  // Environment variable set at build-time using: --dart-define=API_BASE_URL=https://api.back2kasi.co.za
+  // Environment variable set at build-time using: --dart-define=API_BASE_URL=https://...
   static const String _apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
   
   static String get baseUrl {
     if (_apiBaseUrl.isNotEmpty) {
       return _apiBaseUrl;
     }
-    // If we are running in a web context, Platform.isAndroid will throw.
-    // However, since this is a pure mobile setup (Android/iOS), Platform is safe.
+
+    // In release mode (production), default to live Cloudflare Worker API
+    if (kReleaseMode) {
+      return 'https://back2kasi-api.back2kasi.workers.dev';
+    }
+
+    // Local development routing (port 8787)
     if (Platform.isAndroid) {
-      // 10.0.2.2 is Android's special alias to the host machine's loopback interface.
-      return 'http://10.0.2.2:8080';
+      // 10.0.2.2 is Android emulator alias to host machine
+      return 'http://10.0.2.2:8787';
     } else if (Platform.isIOS || Platform.isWindows) {
-      return 'http://localhost:8080';
+      return 'http://localhost:8787';
     }
     // Fallback/physical device route
-    return 'http://$_hostPcIp:8080';
+    return 'http://$_hostPcIp:8787';
   }
 
   // --- Auth endpoints ---

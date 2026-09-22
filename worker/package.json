@@ -1,0 +1,23 @@
+{
+  "name": "back2kasi-worker",
+  "version": "1.0.0",
+  "description": "Back2Kasi Cloudflare Worker API with D1 SQLite database",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "migrate:local": "wrangler d1 migrations apply back2kasi-db --local",
+    "migrate:remote": "wrangler d1 migrations apply back2kasi-db --remote",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "hono": "^4.7.2"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250224.0",
+    "@types/bcryptjs": "^2.4.6",
+    "typescript": "^5.7.3",
+    "wrangler": "^3.111.0"
+  }
+}

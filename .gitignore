@@ -7,6 +7,15 @@
 **/application-local.yml
 **/.env
 **/.env.local
+**/key.properties
+**/*.jks
+**/*.keystore
+
+# ── Cloudflare Worker & Node ──────────────────────────
+**/node_modules/
+**/.wrangler/
+dist/
+
 
 # ── Maven build output ────────────────────────────────
 **/target/
