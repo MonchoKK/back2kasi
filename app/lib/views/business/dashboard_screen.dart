@@ -7,6 +7,9 @@ import '../../core/business_provider.dart';
 import '../../core/rental_unit_provider.dart';
 import '../../models/business.dart';
 import '../../models/booking.dart';
+import '../../models/rental_unit.dart';
+import '../rental_unit/create_edit_unit_screen.dart';
+import '../shared/widgets/cached_image_view.dart';
 import 'business_detail_screen.dart';
 import 'create_edit_business_screen.dart';
 import 'owner_booking_requests_screen.dart';
@@ -237,7 +240,152 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 12),
         _buildStatCard('Active Bookings', '$activeBookings', const Color(0xFF66BB6A), isFullWidth: true),
 
-        const SizedBox(height: 32),
+        const SizedBox(height: 28),
+
+        // Live Inventory / Catalogue Preview
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Live Inventory Preview',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8)),
+            ),
+            TextButton.icon(
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CreateEditUnitScreen(businessId: currentBusiness.id),
+                  ),
+                );
+                _loadDashboardData();
+              },
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('Add Unit', style: TextStyle(fontSize: 12)),
+              style: TextButton.styleFrom(foregroundColor: const Color(0xFF5D5FEF)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        if (rentalUnits.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF161524),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.04)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.photo_library_outlined, color: Colors.grey.withOpacity(0.5), size: 36),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'No units listed yet',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Add your toilets or cold storage to begin accepting bookings.',
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          SizedBox(
+            height: 140,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: rentalUnits.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final unit = rentalUnits[index] as RentalUnit;
+                return InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CreateEditUnitScreen(
+                          businessId: currentBusiness.id,
+                          unit: unit,
+                        ),
+                      ),
+                    );
+                    _loadDashboardData();
+                  },
+                  child: Container(
+                    width: 150,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF161524),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withOpacity(0.06)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: CachedImageView(
+                            imageUrl: unit.displayImageUrl,
+                            width: double.infinity,
+                            height: 65,
+                            fit: BoxFit.cover,
+                            fallbackIcon: unit.rentalUnitType == RentalUnitType.STANDARD_COLD_ROOM ||
+                                    unit.rentalUnitType == RentalUnitType.MOBILE_COLD_ROOM
+                                ? Icons.ac_unit
+                                : Icons.wc,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          unit.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const Spacer(),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'R ${unit.pricePerDay.toStringAsFixed(0)}/d',
+                              style: const TextStyle(
+                                color: Color(0xFFFFB74D),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                const Icon(Icons.photo_library_outlined, size: 10, color: Colors.grey),
+                                const SizedBox(width: 2),
+                                Text(
+                                  '${unit.images.length}',
+                                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+        const SizedBox(height: 28),
 
         // Owner Actions
         const Text(

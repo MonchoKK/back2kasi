@@ -536,3 +536,4 @@ class _TrustItem extends StatelessWidget {
     );
   }
 }
+

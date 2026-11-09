@@ -22,6 +22,8 @@ class BusinessDetailScreen extends StatefulWidget {
 }
 
 class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
+  RentalUnitStatus? _statusFilter;
+
   @override
   void initState() {
     super.initState();
@@ -32,6 +34,45 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
   void _loadData() {
     context.read<RentalUnitProvider>().fetchUnitsForBusiness(widget.business.id);
+  }
+
+  Future<void> _toggleUnitStatus(RentalUnit unit) async {
+    final token = context.read<AuthService>().token;
+    if (token == null) return;
+
+    final newStatus = unit.status == RentalUnitStatus.AVAILABLE
+        ? RentalUnitStatus.UNDER_MAINTENANCE
+        : RentalUnitStatus.AVAILABLE;
+
+    try {
+      await context.read<RentalUnitProvider>().updateRentalUnit(
+            unit.id,
+            businessId: widget.business.id,
+            name: unit.name,
+            description: unit.description,
+            pricePerDay: unit.pricePerDay,
+            capacity: unit.capacity,
+            type: unit.rentalUnitType,
+            status: newStatus,
+            token: token,
+          );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            newStatus == RentalUnitStatus.AVAILABLE
+                ? 'Unit marked as Available'
+                : 'Unit moved to Maintenance',
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 
   Future<void> _deleteUnit(RentalUnit unit) async {
@@ -74,10 +115,40 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     }
   }
 
+  Widget _buildFilterChip(String label, RentalUnitStatus? status) {
+    final isSelected = _statusFilter == status;
+    return ChoiceChip(
+      selected: isSelected,
+      showCheckmark: false,
+      label: Text(label),
+      labelStyle: TextStyle(
+        fontSize: 12,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        color: isSelected ? Colors.white : const Color(0xFF94A3B8),
+      ),
+      backgroundColor: const Color(0xFF161524),
+      selectedColor: const Color(0xFF5D5FEF),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isSelected ? const Color(0xFF5D5FEF) : Colors.white.withOpacity(0.06),
+        ),
+      ),
+      onSelected: (val) {
+        setState(() {
+          _statusFilter = status;
+        });
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<RentalUnitProvider>();
     final units = provider.getUnitsForBusiness(widget.business.id);
+    final filteredUnits = _statusFilter == null
+        ? units
+        : units.where((u) => u.status == _statusFilter).toList();
     final isLoading = provider.isLoading;
     final errorMessage = provider.errorMessage;
 
@@ -109,30 +180,70 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               ),
             ),
 
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Text(
-              'Rental Units Inventory',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-              ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Rental Units Inventory',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                Text(
+                  '${filteredUnits.length} of ${units.length}',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
             ),
           ),
+
+          // Status Filter Chips
+          if (units.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildFilterChip('All (${units.length})', null),
+                    const SizedBox(width: 8),
+                    _buildFilterChip(
+                      'Available (${units.where((u) => u.status == RentalUnitStatus.AVAILABLE).length})',
+                      RentalUnitStatus.AVAILABLE,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildFilterChip(
+                      'Rented (${units.where((u) => u.status == RentalUnitStatus.RENTED).length})',
+                      RentalUnitStatus.RENTED,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildFilterChip(
+                      'Maintenance (${units.where((u) => u.status == RentalUnitStatus.UNDER_MAINTENANCE).length})',
+                      RentalUnitStatus.UNDER_MAINTENANCE,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 12),
 
           Expanded(
             child: isLoading && units.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : RefreshIndicator(
                     onRefresh: () async => _loadData(),
-                    child: units.isEmpty
+                    child: filteredUnits.isEmpty
                         ? _buildEmptyState()
                         : ListView.builder(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: units.length,
+                            itemCount: filteredUnits.length,
                             itemBuilder: (context, index) {
-                              final item = units[index];
+                              final item = filteredUnits[index];
                               return _buildUnitCard(item);
                             },
                           ),
@@ -357,6 +468,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                             ),
                           ),
                         );
+                      } else if (value == 'toggle_status') {
+                        _toggleUnitStatus(unit);
                       } else if (value == 'delete') {
                         _deleteUnit(unit);
                       }
@@ -372,6 +485,27 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           ],
                         ),
                       ),
+                      if (unit.status != RentalUnitStatus.RENTED)
+                        PopupMenuItem(
+                          value: 'toggle_status',
+                          child: Row(
+                            children: [
+                              Icon(
+                                unit.status == RentalUnitStatus.AVAILABLE
+                                    ? Icons.build_outlined
+                                    : Icons.check_circle_outline,
+                                size: 20,
+                                color: const Color(0xFFFFB74D),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                unit.status == RentalUnitStatus.AVAILABLE
+                                    ? 'Set Maintenance'
+                                    : 'Set Available',
+                              ),
+                            ],
+                          ),
+                        ),
                       const PopupMenuItem(
                         value: 'delete',
                         child: Row(
