@@ -10,8 +10,12 @@
 |--------|-------|--------|-----|
 | Sprint 1 – Foundation | Project Init, Backend Setup, Domain Modelling, User Registration | ✅ Complete | [Sprint-01-Foundation.md](Engineering-Logs/Sprint-01-Foundation.md) |
 | Sprint 2 – Authentication | JWT Login, Spring Security Filter Chain | ✅ Complete | [Sprint-02-Authentication.md](Engineering-Logs/Sprint-02-Authentication.md) |
-| Sprint 3 – Business Management | Business entity, ownership model, CRUD API, ownership enforcement | ✅ Complete | — |
-| Sprint 4 – Rental Unit Management | RentalUnit entity, belongs-to-business, availability, CRUD API | 🔲 In Progress | — |
+| Sprint 19 – Production Hardening | Security audit, environment configuration, validation guards | ✅ Complete | [Sprint-19-Production-Hardening.md](Engineering-Logs/Sprint-19-Production-Hardening.md) |
+| Sprint 20 – Production Flutter Release | Android release configuration, release signing keystore, APK output | ✅ Complete | [Sprint-20-Production-Flutter-Release.md](Engineering-Logs/Sprint-20-Production-Flutter-Release.md) |
+| Sprint 25 – Catalogue Image Management | Cloudflare R2 bucket, D1 migration, Flutter image upload grid, cover selection | ✅ Complete | [Sprint-25-Catalogue-Image-Management.md](Engineering-Logs/Sprint-25-Catalogue-Image-Management.md) |
+| Sprint 26 – Customer Marketplace Redesign | Category chips, live search, image cards, interactive photo gallery carousel | ✅ Complete | [Sprint-26-Customer-Marketplace-Redesign.md](Engineering-Logs/Sprint-26-Customer-Marketplace-Redesign.md) |
+| Sprint 27 – Business Owner Experience | Dashboard live preview carousel, status filters, one-tap maintenance toggle | ✅ Complete | [Sprint-27-Business-Owner-Experience-Redesign.md](Engineering-Logs/Sprint-27-Business-Owner-Experience-Redesign.md) |
+| Sprint 28 – Final Polish & Verification | Shimmer skeleton screens, empty states, full 22-test regression suite | ✅ Complete | [Sprint-28-Final-Polish-And-Verification.md](Engineering-Logs/Sprint-28-Final-Polish-And-Verification.md) |
 
 ---
 
