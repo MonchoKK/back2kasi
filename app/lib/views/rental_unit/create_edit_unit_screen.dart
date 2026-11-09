@@ -1,12 +1,16 @@
 // ignore_for_file: slash_for_doc_comments, use_build_context_synchronously, deprecated_member_use
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/auth_service.dart';
 import '../../core/rental_unit_provider.dart';
 import '../../models/rental_unit.dart';
+import '../../models/rental_unit_image.dart';
+import '../shared/widgets/image_upload_grid.dart';
 
 /**
- * Screen presenting a form to create a new rental unit or modify an existing one.
+ * Screen presenting a form to create a new rental unit or modify an existing one,
+ * with full catalogue photo management (upload, preview, delete, primary selection).
  */
 class CreateEditUnitScreen extends StatefulWidget {
   final int businessId;
@@ -24,9 +28,13 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
   late TextEditingController _descController;
   late TextEditingController _priceController;
   late TextEditingController _capacityController;
-  
+
   late RentalUnitType _selectedType;
   late RentalUnitStatus _selectedStatus;
+
+  List<RentalUnitImage> _remoteImages = [];
+  final List<File> _pendingLocalFiles = [];
+  bool _isUploadingPhoto = false;
 
   String? _errorMessage;
 
@@ -39,9 +47,11 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
     _descController = TextEditingController(text: widget.unit?.description ?? '');
     _priceController = TextEditingController(text: widget.unit?.pricePerDay.toString() ?? '');
     _capacityController = TextEditingController(text: widget.unit?.capacity.toString() ?? '1');
-    
+
     _selectedType = widget.unit?.rentalUnitType ?? RentalUnitType.STANDARD_TOILET;
     _selectedStatus = widget.unit?.status ?? RentalUnitStatus.AVAILABLE;
+
+    _remoteImages = List.from(widget.unit?.images ?? []);
   }
 
   @override
@@ -51,6 +61,179 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
     _priceController.dispose();
     _capacityController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleRemoteImageAdded(File file, bool isPrimary) async {
+    final token = context.read<AuthService>().token;
+    if (token == null || widget.unit == null) return;
+
+    setState(() {
+      _isUploadingPhoto = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final provider = context.read<RentalUnitProvider>();
+      final newImage = await provider.uploadUnitImage(
+        unitId: widget.unit!.id,
+        businessId: widget.businessId,
+        filePath: file.path,
+        token: token,
+        isPrimary: isPrimary,
+      );
+
+      setState(() {
+        if (newImage.isPrimary) {
+          _remoteImages = _remoteImages
+              .map((img) => RentalUnitImage(
+                    id: img.id,
+                    rentalUnitId: img.rentalUnitId,
+                    imageUrl: img.imageUrl,
+                    contentType: img.contentType,
+                    fileSize: img.fileSize,
+                    isPrimary: false,
+                    displayOrder: img.displayOrder,
+                    createdAt: img.createdAt,
+                  ))
+              .toList();
+        }
+        _remoteImages.add(newImage);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Photo uploaded successfully')),
+      );
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingPhoto = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleRemoteSetPrimary(RentalUnitImage image) async {
+    final token = context.read<AuthService>().token;
+    if (token == null || widget.unit == null) return;
+
+    setState(() {
+      _isUploadingPhoto = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await context.read<RentalUnitProvider>().setPrimaryUnitImage(
+            unitId: widget.unit!.id,
+            imageId: image.id,
+            businessId: widget.businessId,
+            token: token,
+          );
+
+      setState(() {
+        _remoteImages = _remoteImages.map((img) {
+          final isPrimary = img.id == image.id;
+          return RentalUnitImage(
+            id: img.id,
+            rentalUnitId: img.rentalUnitId,
+            imageUrl: img.imageUrl,
+            contentType: img.contentType,
+            fileSize: img.fileSize,
+            isPrimary: isPrimary,
+            displayOrder: img.displayOrder,
+            createdAt: img.createdAt,
+          );
+        }).toList();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Primary cover photo updated')),
+      );
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingPhoto = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleRemoteDelete(RentalUnitImage image) async {
+    final token = context.read<AuthService>().token;
+    if (token == null || widget.unit == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Photo'),
+        content: const Text('Are you sure you want to remove this photo?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() {
+      _isUploadingPhoto = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await context.read<RentalUnitProvider>().deleteUnitImage(
+            unitId: widget.unit!.id,
+            imageId: image.id,
+            businessId: widget.businessId,
+            token: token,
+          );
+
+      setState(() {
+        _remoteImages.removeWhere((img) => img.id == image.id);
+        if (image.isPrimary && _remoteImages.isNotEmpty) {
+          // Client mirror: first remaining becomes primary
+          _remoteImages[0] = RentalUnitImage(
+            id: _remoteImages[0].id,
+            rentalUnitId: _remoteImages[0].rentalUnitId,
+            imageUrl: _remoteImages[0].imageUrl,
+            contentType: _remoteImages[0].contentType,
+            fileSize: _remoteImages[0].fileSize,
+            isPrimary: true,
+            displayOrder: _remoteImages[0].displayOrder,
+            createdAt: _remoteImages[0].createdAt,
+          );
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Photo deleted')),
+      );
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingPhoto = false;
+        });
+      }
+    }
   }
 
   Future<void> _save() async {
@@ -92,6 +275,28 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
           type: _selectedType,
           token: token,
         );
+
+        // Upload any pending photos selected during creation
+        if (_pendingLocalFiles.isNotEmpty) {
+          final units = provider.getUnitsForBusiness(widget.businessId);
+          if (units.isNotEmpty) {
+            final newlyCreated = units.last;
+            for (var i = 0; i < _pendingLocalFiles.length; i++) {
+              final file = _pendingLocalFiles[i];
+              try {
+                await provider.uploadUnitImage(
+                  unitId: newlyCreated.id,
+                  businessId: widget.businessId,
+                  filePath: file.path,
+                  token: token,
+                  isPrimary: i == 0,
+                );
+              } catch (_) {
+                // Keep moving for other photos
+              }
+            }
+          }
+        }
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -115,7 +320,6 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
   Widget build(BuildContext context) {
     final isLoading = context.watch<RentalUnitProvider>().isLoading;
 
-    // Helper maps to format UI dropdown texts
     final Map<RentalUnitType, String> typeNames = {
       RentalUnitType.STANDARD_TOILET: 'Standard Toilet',
       RentalUnitType.VIP_TOILET: 'VIP Toilet Trailer',
@@ -148,10 +352,42 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Set the price, unit class type, and occupancy details.',
+                  'Set the price, photos, unit class type, and occupancy details.',
                   style: TextStyle(color: Colors.grey),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+
+                // Image Management Grid
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF161524),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withOpacity(0.06)),
+                  ),
+                  child: ImageUploadGrid(
+                    remoteImages: _remoteImages,
+                    localPendingFiles: _pendingLocalFiles,
+                    isUploading: _isUploadingPhoto,
+                    onLocalImageAdded: (file, isPrimary) {
+                      if (isEditMode) {
+                        _handleRemoteImageAdded(file, isPrimary);
+                      } else {
+                        setState(() {
+                          _pendingLocalFiles.add(file);
+                        });
+                      }
+                    },
+                    onLocalImageRemoved: (index) {
+                      setState(() {
+                        _pendingLocalFiles.removeAt(index);
+                      });
+                    },
+                    onRemoteDelete: _handleRemoteDelete,
+                    onRemoteSetPrimary: _handleRemoteSetPrimary,
+                  ),
+                ),
+                const SizedBox(height: 24),
 
                 // Name
                 TextFormField(
@@ -264,7 +500,6 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
                   controller: _descController,
                   maxLines: 3,
                   textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) => _save(),
                   decoration: const InputDecoration(
                     labelText: 'Description (Optional)',
                     prefixIcon: Icon(Icons.description_outlined),
@@ -293,8 +528,8 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
 
                 // Save Button
                 ElevatedButton(
-                  onPressed: isLoading ? null : _save,
-                  child: isLoading
+                  onPressed: isLoading || _isUploadingPhoto ? null : _save,
+                  child: isLoading || _isUploadingPhoto
                       ? const SizedBox(
                           height: 20,
                           width: 20,

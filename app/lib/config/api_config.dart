@@ -50,4 +50,23 @@ class ApiConfig {
   static String get myBusinesses => '$baseUrl/api/v1/businesses/my';
   static String get rentalUnits => '$baseUrl/api/v1/rental-units';
   static String get bookings => '$baseUrl/api/v1/bookings';
+
+  // --- Image management endpoints ---
+  static String rentalUnitImages(int unitId) => '$rentalUnits/$unitId/images';
+  static String rentalUnitImagePrimary(int unitId, int imageId) =>
+      '$rentalUnits/$unitId/images/$imageId/primary';
+  static String rentalUnitImageDelete(int unitId, int imageId) =>
+      '$rentalUnits/$unitId/images/$imageId';
+
+  /**
+   * Resolves relative image endpoints (e.g. /api/v1/images/...) into fully qualified URLs.
+   */
+  static String? resolveImageUrl(String? rawUrl) {
+    if (rawUrl == null || rawUrl.isEmpty) return null;
+    if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+      return rawUrl;
+    }
+    final path = rawUrl.startsWith('/') ? rawUrl : '/$rawUrl';
+    return '$baseUrl$path';
+  }
 }

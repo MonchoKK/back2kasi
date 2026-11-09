@@ -47,6 +47,12 @@ dependencies:
   # Typography support for premium aesthetics
   google_fonts: ^6.2.1
 
+  # Image selection for business owners (catalogue photos)
+  image_picker: ^1.1.2
+
+  # Efficient image caching, memory management and placeholder shimmers
+  cached_network_image: ^3.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

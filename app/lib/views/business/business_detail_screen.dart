@@ -6,6 +6,7 @@ import '../../core/rental_unit_provider.dart';
 import '../../models/business.dart';
 import '../../models/rental_unit.dart';
 import '../rental_unit/create_edit_unit_screen.dart';
+import '../shared/widgets/cached_image_view.dart';
 
 /**
  * Screen displaying details of a specific business profile and listing its
@@ -276,109 +277,177 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                // Status Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: badgeColor,
-                    borderRadius: BorderRadius.circular(6),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CreateEditUnitScreen(
+                businessId: widget.business.id,
+                unit: unit,
+              ),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  // Status Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: badgeColor,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      statusLabel,
+                      style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
                   ),
-                  child: Text(
-                    statusLabel,
-                    style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.bold),
+                  const SizedBox(width: 8),
+                  Text(
+                    typeLabel,
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  typeLabel,
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-                const Spacer(),
-                // Unit Options Dropdown
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, color: Colors.grey),
-                  onSelected: (value) {
-                    if (value == 'edit') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CreateEditUnitScreen(
-                            businessId: widget.business.id,
-                            unit: unit,
+                  const Spacer(),
+                  // Photo Count Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          unit.images.isEmpty ? Icons.no_photography_outlined : Icons.photo_library_outlined,
+                          size: 13,
+                          color: unit.images.isEmpty ? Colors.grey : const Color(0xFF8C8DFF),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${unit.images.length}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: unit.images.isEmpty ? Colors.grey : const Color(0xFF8C8DFF),
                           ),
                         ),
-                      );
-                    } else if (value == 'delete') {
-                      _deleteUnit(unit);
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit_outlined, size: 20),
-                          SizedBox(width: 8),
-                          Text('Edit'),
-                        ],
-                      ),
+                      ],
                     ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-                          SizedBox(width: 8),
-                          Text('Delete', style: TextStyle(color: Colors.redAccent)),
-                        ],
+                  ),
+                  const SizedBox(width: 4),
+                  // Unit Options Dropdown
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert, color: Colors.grey),
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CreateEditUnitScreen(
+                              businessId: widget.business.id,
+                              unit: unit,
+                            ),
+                          ),
+                        );
+                      } else if (value == 'delete') {
+                        _deleteUnit(unit);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit_outlined, size: 20),
+                            SizedBox(width: 8),
+                            Text('Edit / Photos'),
+                          ],
+                        ),
                       ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                            SizedBox(width: 8),
+                            Text('Delete', style: TextStyle(color: Colors.redAccent)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Unit Thumbnail
+                  CachedImageView(
+                    imageUrl: unit.displayImageUrl,
+                    width: 72,
+                    height: 72,
+                    borderRadius: BorderRadius.circular(12),
+                    fallbackIcon: unit.rentalUnitType == RentalUnitType.STANDARD_COLD_ROOM ||
+                            unit.rentalUnitType == RentalUnitType.MOBILE_COLD_ROOM
+                        ? Icons.ac_unit
+                        : Icons.wc,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          unit.name,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        if (unit.description != null && unit.description!.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            unit.description!,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              unit.name,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            if (unit.description != null && unit.description!.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(
-                unit.description!,
-                style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Divider(color: Colors.white10),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.people_outline, size: 16, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Capacity: ${unit.capacity}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const Spacer(),
+                  Text(
+                    'R ${unit.pricePerDay.toStringAsFixed(2)} / day',
+                    style: const TextStyle(
+                      color: Color(0xFFFFB74D),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
             ],
-            const SizedBox(height: 16),
-            const Divider(color: Colors.white10),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.people_outline, size: 16, color: Colors.grey),
-                const SizedBox(width: 4),
-                Text(
-                  'Capacity: ${unit.capacity}',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                const Spacer(),
-                Text(
-                  'R ${unit.pricePerDay.toStringAsFixed(2)} / day',
-                  style: const TextStyle(
-                    color: Color(0xFFFFB74D),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );

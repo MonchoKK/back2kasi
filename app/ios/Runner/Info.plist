@@ -51,6 +51,10 @@
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Back2Kasi needs access to your photo library to select photos for rental unit listings.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Back2Kasi needs access to your camera to take photos of rental units.</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 	<key>UISupportedInterfaceOrientations</key>

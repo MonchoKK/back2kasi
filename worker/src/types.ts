@@ -15,6 +15,7 @@ export type Role = 'USER' | 'ADMIN';
 
 export interface Env {
   DB: D1Database;
+  IMAGES_BUCKET: R2Bucket;
   JWT_SECRET?: string;
   DEFAULT_JWT_SECRET?: string;
   JWT_EXPIRATION_SECONDS?: string;
@@ -73,6 +74,19 @@ export interface RentalUnitRow {
   updated_at: string;
 }
 
+export interface RentalUnitImageRow {
+  id: number;
+  rental_unit_id: number;
+  r2_key: string;
+  image_url: string;
+  content_type: string;
+  file_size: number;
+  is_primary: number;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface BookingRow {
   id: number;
   rental_unit_id: number;
@@ -105,6 +119,17 @@ export interface BusinessResponse {
   updatedAt: string;
 }
 
+export interface RentalUnitImageResponse {
+  id: number;
+  rentalUnitId: number;
+  imageUrl: string;
+  contentType: string;
+  fileSize: number;
+  isPrimary: boolean;
+  displayOrder: number;
+  createdAt: string;
+}
+
 export interface RentalUnitResponse {
   id: number;
   name: string;
@@ -114,6 +139,8 @@ export interface RentalUnitResponse {
   rentalUnitType: RentalUnitType;
   status: RentalUnitStatus;
   businessId: number;
+  images?: RentalUnitImageResponse[];
+  primaryImageUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/rental_unit.dart';
+import '../models/rental_unit_image.dart';
 
 /**
  * State provider managing rental unit inventories.
@@ -241,6 +242,212 @@ class RentalUnitProvider extends ChangeNotifier {
       rethrow;
     } finally {
       _setLoading(false);
+    }
+  }
+
+  /**
+   * Uploads a new photo attachment for a rental unit listing.
+   */
+  Future<RentalUnitImage> uploadUnitImage({
+    required int unitId,
+    required int businessId,
+    required String filePath,
+    required String token,
+    bool isPrimary = false,
+  }) async {
+    _setLoading(true);
+    _errorMessage = null;
+
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse(ApiConfig.rentalUnitImages(unitId)),
+      );
+
+      request.headers['Authorization'] = 'Bearer $token';
+      request.files.add(await http.MultipartFile.fromPath('image', filePath));
+      if (isPrimary) {
+        request.fields['isPrimary'] = 'true';
+      }
+
+      final streamedResponse = await request.send();
+      final responseBody = await streamedResponse.stream.bytesToString();
+
+      if (streamedResponse.statusCode == 201) {
+        final imageJson = jsonDecode(responseBody) as Map<String, dynamic>;
+        final newImage = RentalUnitImage.fromJson(imageJson);
+
+        _updateUnitInMemory(unitId, businessId, (unit) {
+          final updatedImages = List<RentalUnitImage>.from(unit.images);
+          if (newImage.isPrimary) {
+            for (var i = 0; i < updatedImages.length; i++) {
+              final old = updatedImages[i];
+              updatedImages[i] = RentalUnitImage(
+                id: old.id,
+                rentalUnitId: old.rentalUnitId,
+                imageUrl: old.imageUrl,
+                contentType: old.contentType,
+                fileSize: old.fileSize,
+                isPrimary: false,
+                displayOrder: old.displayOrder,
+                createdAt: old.createdAt,
+              );
+            }
+          }
+          updatedImages.add(newImage);
+
+          return unit.copyWith(
+            images: updatedImages,
+            primaryImageUrl: newImage.isPrimary ? newImage.imageUrl : unit.primaryImageUrl ?? newImage.imageUrl,
+          );
+        });
+
+        notifyListeners();
+        return newImage;
+      } else {
+        final err = jsonDecode(responseBody);
+        _errorMessage = err['message'] ?? 'Failed to upload photo';
+        throw Exception(_errorMessage);
+      }
+    } catch (e) {
+      if (_errorMessage == null) {
+        _errorMessage = 'Connection error: unable to upload image';
+      }
+      rethrow;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /**
+   * Promotes an existing photo to primary display photo for a rental unit.
+   */
+  Future<void> setPrimaryUnitImage({
+    required int unitId,
+    required int imageId,
+    required int businessId,
+    required String token,
+  }) async {
+    _setLoading(true);
+    _errorMessage = null;
+
+    try {
+      final response = await http.patch(
+        Uri.parse(ApiConfig.rentalUnitImagePrimary(unitId, imageId)),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        _updateUnitInMemory(unitId, businessId, (unit) {
+          String? newPrimaryUrl;
+          final updatedImages = unit.images.map((img) {
+            final isTarget = img.id == imageId;
+            if (isTarget) newPrimaryUrl = img.imageUrl;
+            return RentalUnitImage(
+              id: img.id,
+              rentalUnitId: img.rentalUnitId,
+              imageUrl: img.imageUrl,
+              contentType: img.contentType,
+              fileSize: img.fileSize,
+              isPrimary: isTarget,
+              displayOrder: img.displayOrder,
+              createdAt: img.createdAt,
+            );
+          }).toList();
+
+          return unit.copyWith(
+            images: updatedImages,
+            primaryImageUrl: newPrimaryUrl ?? unit.primaryImageUrl,
+          );
+        });
+
+        notifyListeners();
+      } else {
+        final err = jsonDecode(response.body);
+        _errorMessage = err['message'] ?? 'Failed to set primary image';
+        throw Exception(_errorMessage);
+      }
+    } catch (e) {
+      if (_errorMessage == null) {
+        _errorMessage = 'Connection error: unable to update primary image';
+      }
+      rethrow;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /**
+   * Deletes a photo from a rental unit listing.
+   */
+  Future<void> deleteUnitImage({
+    required int unitId,
+    required int imageId,
+    required int businessId,
+    required String token,
+  }) async {
+    _setLoading(true);
+    _errorMessage = null;
+
+    try {
+      final response = await http.delete(
+        Uri.parse(ApiConfig.rentalUnitImageDelete(unitId, imageId)),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 204) {
+        _updateUnitInMemory(unitId, businessId, (unit) {
+          final updatedImages = unit.images.where((img) => img.id != imageId).toList();
+          final String? newPrimary = updatedImages.isNotEmpty
+              ? updatedImages.firstWhere((img) => img.isPrimary, orElse: () => updatedImages.first).imageUrl
+              : null;
+
+          return unit.copyWith(
+            images: updatedImages,
+            primaryImageUrl: newPrimary,
+          );
+        });
+
+        notifyListeners();
+      } else {
+        final err = jsonDecode(response.body);
+        _errorMessage = err['message'] ?? 'Failed to delete photo';
+        throw Exception(_errorMessage);
+      }
+    } catch (e) {
+      if (_errorMessage == null) {
+        _errorMessage = 'Connection error: unable to delete photo';
+      }
+      rethrow;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  void _updateUnitInMemory(
+    int unitId,
+    int businessId,
+    RentalUnit Function(RentalUnit current) transform,
+  ) {
+    // Update in businessUnits map
+    final list = _businessUnits[businessId];
+    if (list != null) {
+      final index = list.indexWhere((u) => u.id == unitId);
+      if (index != -1) {
+        list[index] = transform(list[index]);
+      }
+    }
+
+    // Update in allUnits list
+    final allIndex = _allUnits.indexWhere((u) => u.id == unitId);
+    if (allIndex != -1) {
+      _allUnits[allIndex] = transform(_allUnits[allIndex]);
     }
   }
 }
