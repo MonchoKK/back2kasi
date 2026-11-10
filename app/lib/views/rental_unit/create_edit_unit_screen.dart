@@ -2,10 +2,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../config/app_theme.dart';
 import '../../core/auth_service.dart';
 import '../../core/rental_unit_provider.dart';
 import '../../models/rental_unit.dart';
 import '../../models/rental_unit_image.dart';
+import '../shared/components/bk_components.dart';
 import '../shared/widgets/image_upload_grid.dart';
 
 /**
@@ -45,8 +47,10 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
     super.initState();
     _nameController = TextEditingController(text: widget.unit?.name ?? '');
     _descController = TextEditingController(text: widget.unit?.description ?? '');
-    _priceController = TextEditingController(text: widget.unit?.pricePerDay.toString() ?? '');
-    _capacityController = TextEditingController(text: widget.unit?.capacity.toString() ?? '1');
+    _priceController = TextEditingController(
+        text: widget.unit?.pricePerDay != null ? widget.unit!.pricePerDay.toString() : '');
+    _capacityController = TextEditingController(
+        text: widget.unit?.capacity != null ? widget.unit!.capacity.toString() : '1');
 
     _selectedType = widget.unit?.rentalUnitType ?? RentalUnitType.STANDARD_TOILET;
     _selectedStatus = widget.unit?.status ?? RentalUnitStatus.AVAILABLE;
@@ -101,7 +105,10 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Photo uploaded successfully')),
+        const SnackBar(
+          content: Text('Photo uploaded successfully'),
+          backgroundColor: AppTheme.successColor,
+        ),
       );
     } catch (e) {
       setState(() {
@@ -150,7 +157,10 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Primary cover photo updated')),
+        const SnackBar(
+          content: Text('Primary cover photo updated'),
+          backgroundColor: AppTheme.successColor,
+        ),
       );
     } catch (e) {
       setState(() {
@@ -181,7 +191,7 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
             child: const Text('Delete'),
           ),
         ],
@@ -206,7 +216,6 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
       setState(() {
         _remoteImages.removeWhere((img) => img.id == image.id);
         if (image.isPrimary && _remoteImages.isNotEmpty) {
-          // Client mirror: first remaining becomes primary
           _remoteImages[0] = RentalUnitImage(
             id: _remoteImages[0].id,
             rentalUnitId: _remoteImages[0].rentalUnitId,
@@ -221,7 +230,10 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Photo deleted')),
+        const SnackBar(
+          content: Text('Photo deleted'),
+          backgroundColor: AppTheme.successColor,
+        ),
       );
     } catch (e) {
       setState(() {
@@ -306,6 +318,7 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
                 ? 'Rental unit details updated'
                 : 'Rental unit registered successfully',
           ),
+          backgroundColor: AppTheme.successColor,
         ),
       );
       Navigator.pop(context);
@@ -335,212 +348,325 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
     };
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(isEditMode ? 'Edit Rental Unit' : 'Add Rental Unit'),
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: BkAppBar(
+        title: isEditMode ? 'Edit Rental Unit' : 'Add Rental Unit',
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  isEditMode ? 'Modify Specifications' : 'List New Inventory Unit',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Set the price, photos, unit class type, and occupancy details.',
-                  style: TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 24),
-
-                // Image Management Grid
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF161524),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.06)),
-                  ),
-                  child: ImageUploadGrid(
-                    remoteImages: _remoteImages,
-                    localPendingFiles: _pendingLocalFiles,
-                    isUploading: _isUploadingPhoto,
-                    onLocalImageAdded: (file, isPrimary) {
-                      if (isEditMode) {
-                        _handleRemoteImageAdded(file, isPrimary);
-                      } else {
-                        setState(() {
-                          _pendingLocalFiles.add(file);
-                        });
-                      }
-                    },
-                    onLocalImageRemoved: (index) {
-                      setState(() {
-                        _pendingLocalFiles.removeAt(index);
-                      });
-                    },
-                    onRemoteDelete: _handleRemoteDelete,
-                    onRemoteSetPrimary: _handleRemoteSetPrimary,
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Name
-                TextFormField(
-                  controller: _nameController,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Unit Identifier / Name',
-                    prefixIcon: Icon(Icons.badge_outlined),
-                    hintText: 'e.g. VIP Trailer Unit 1',
-                  ),
-                  validator: (val) =>
-                      val == null || val.trim().isEmpty ? 'Unit name is required' : null,
-                ),
-                const SizedBox(height: 20),
-
-                // Rental Unit Type Selection
-                DropdownButtonFormField<RentalUnitType>(
-                  value: _selectedType,
-                  decoration: const InputDecoration(
-                    labelText: 'Inventory Category',
-                    prefixIcon: Icon(Icons.category_outlined),
-                  ),
-                  dropdownColor: const Color(0xFF161524),
-                  items: RentalUnitType.values.map((type) {
-                    return DropdownMenuItem(
-                      value: type,
-                      child: Text(typeNames[type] ?? 'Unit'),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() {
-                        _selectedType = val;
-                      });
-                    }
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Price Per Day (Rands)
-                TextFormField(
-                  controller: _priceController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Price Per Day (ZAR)',
-                    prefixIcon: Icon(Icons.payments_outlined),
-                    hintText: 'e.g. 150.00',
-                  ),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) return 'Price per day is required';
-                    final price = double.tryParse(val);
-                    if (price == null || price <= 0) {
-                      return 'Price must be a positive number greater than 0';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Capacity
-                TextFormField(
-                  controller: _capacityController,
-                  keyboardType: TextInputType.number,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Storage Capacity / Occupants',
-                    prefixIcon: Icon(Icons.people_outline),
-                    hintText: 'e.g. 1',
-                  ),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) return 'Capacity is required';
-                    final cap = int.tryParse(val);
-                    if (cap == null || cap <= 0) {
-                      return 'Capacity must be an integer greater than 0';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Status Dropdown (Only in Edit mode)
-                if (isEditMode) ...[
-                  DropdownButtonFormField<RentalUnitStatus>(
-                    value: _selectedStatus,
-                    decoration: const InputDecoration(
-                      labelText: 'Current Availability Status',
-                      prefixIcon: Icon(Icons.info_outline),
-                    ),
-                    dropdownColor: const Color(0xFF161524),
-                    items: RentalUnitStatus.values.map((status) {
-                      return DropdownMenuItem(
-                        value: status,
-                        child: Text(statusNames[status] ?? 'Status'),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          _selectedStatus = val;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                ],
-
-                // Description
-                TextFormField(
-                  controller: _descController,
-                  maxLines: 3,
-                  textInputAction: TextInputAction.done,
-                  decoration: const InputDecoration(
-                    labelText: 'Description (Optional)',
-                    prefixIcon: Icon(Icons.description_outlined),
-                    alignLabelWithHint: true,
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Error Message Banner
-                if (_errorMessage != null) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
-                    ),
-                    child: Text(
-                      _errorMessage!,
-                      style: const TextStyle(color: Colors.redAccent, fontSize: 14),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
-
-                // Save Button
-                ElevatedButton(
-                  onPressed: isLoading || _isUploadingPhoto ? null : _save,
-                  child: isLoading || _isUploadingPhoto
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation(Colors.white),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 620),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Photos Management Card
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceColor,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                        border: Border.all(color: AppTheme.borderColor),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 12,
+                            offset: const Offset(0, 3),
                           ),
-                        )
-                      : Text(isEditMode ? 'Save Unit Specifications' : 'Register Unit'),
+                        ],
+                      ),
+                      child: ImageUploadGrid(
+                        remoteImages: _remoteImages,
+                        localPendingFiles: _pendingLocalFiles,
+                        isUploading: _isUploadingPhoto,
+                        onLocalImageAdded: (file, isPrimary) {
+                          if (isEditMode) {
+                            _handleRemoteImageAdded(file, isPrimary);
+                          } else {
+                            setState(() {
+                              _pendingLocalFiles.add(file);
+                            });
+                          }
+                        },
+                        onLocalImageRemoved: (index) {
+                          setState(() {
+                            _pendingLocalFiles.removeAt(index);
+                          });
+                        },
+                        onRemoteDelete: _handleRemoteDelete,
+                        onRemoteSetPrimary: _handleRemoteSetPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.space20),
+
+                    // Specifications Card
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceColor,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                        border: Border.all(color: AppTheme.borderColor),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            isEditMode ? 'Modify Specifications' : 'List New Inventory Unit',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.darkTextColor,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Set the price, unit class type, capacity, and details.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.secondaryTextColor,
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.space24),
+
+                          // Name
+                          BkTextField(
+                            controller: _nameController,
+                            label: 'Unit Identifier / Name',
+                            hintText: 'e.g. VIP Trailer Unit 1',
+                            prefixIcon: Icons.badge_outlined,
+                            textInputAction: TextInputAction.next,
+                            validator: (val) =>
+                                val == null || val.trim().isEmpty ? 'Unit name is required' : null,
+                          ),
+                          const SizedBox(height: AppTheme.space16),
+
+                          // Inventory Category Dropdown
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Inventory Category',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.textPrimaryColor,
+                                ),
+                              ),
+                              const SizedBox(height: AppTheme.space8),
+                              DropdownButtonFormField<RentalUnitType>(
+                                value: _selectedType,
+                                decoration: InputDecoration(
+                                  prefixIcon: const Icon(
+                                    Icons.category_outlined,
+                                    color: AppTheme.textSecondaryColor,
+                                    size: 20,
+                                  ),
+                                  filled: true,
+                                  fillColor: AppTheme.surfaceColor,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                                    borderSide: const BorderSide(color: AppTheme.borderColor, width: 1.2),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                                    borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.8),
+                                  ),
+                                ),
+                                dropdownColor: AppTheme.surfaceColor,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  color: AppTheme.textPrimaryColor,
+                                ),
+                                items: RentalUnitType.values.map((type) {
+                                  return DropdownMenuItem(
+                                    value: type,
+                                    child: Text(typeNames[type] ?? 'Unit'),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() {
+                                      _selectedType = val;
+                                    });
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppTheme.space16),
+
+                          // Price Per Day (Rands) & Capacity Row
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: BkTextField(
+                                  controller: _priceController,
+                                  label: 'Price Per Day (ZAR)',
+                                  hintText: 'e.g. 150.00',
+                                  prefixIcon: Icons.payments_outlined,
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  textInputAction: TextInputAction.next,
+                                  validator: (val) {
+                                    if (val == null || val.trim().isEmpty) {
+                                      return 'Required';
+                                    }
+                                    final price = double.tryParse(val);
+                                    if (price == null || price <= 0) {
+                                      return 'Invalid';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: AppTheme.space12),
+                              Expanded(
+                                flex: 2,
+                                child: BkTextField(
+                                  controller: _capacityController,
+                                  label: 'Capacity',
+                                  hintText: 'e.g. 1',
+                                  prefixIcon: Icons.people_outline,
+                                  keyboardType: TextInputType.number,
+                                  textInputAction: TextInputAction.next,
+                                  validator: (val) {
+                                    if (val == null || val.trim().isEmpty) {
+                                      return 'Required';
+                                    }
+                                    final cap = int.tryParse(val);
+                                    if (cap == null || cap <= 0) {
+                                      return 'Invalid';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppTheme.space16),
+
+                          // Status Dropdown (Only in Edit mode)
+                          if (isEditMode) ...[
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Current Availability Status',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.textPrimaryColor,
+                                  ),
+                                ),
+                                const SizedBox(height: AppTheme.space8),
+                                DropdownButtonFormField<RentalUnitStatus>(
+                                  value: _selectedStatus,
+                                  decoration: InputDecoration(
+                                    prefixIcon: const Icon(
+                                      Icons.info_outline,
+                                      color: AppTheme.textSecondaryColor,
+                                      size: 20,
+                                    ),
+                                    filled: true,
+                                    fillColor: AppTheme.surfaceColor,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                                      borderSide: const BorderSide(color: AppTheme.borderColor, width: 1.2),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                                      borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.8),
+                                    ),
+                                  ),
+                                  dropdownColor: AppTheme.surfaceColor,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    color: AppTheme.textPrimaryColor,
+                                  ),
+                                  items: RentalUnitStatus.values.map((status) {
+                                    return DropdownMenuItem(
+                                      value: status,
+                                      child: Text(statusNames[status] ?? 'Status'),
+                                    );
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      setState(() {
+                                        _selectedStatus = val;
+                                      });
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppTheme.space16),
+                          ],
+
+                          // Description
+                          BkTextField(
+                            controller: _descController,
+                            label: 'Description (Optional)',
+                            hintText: 'Describe features, dimensions, sanitation schedule...',
+                            prefixIcon: Icons.description_outlined,
+                            maxLines: 3,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _save(),
+                          ),
+                          const SizedBox(height: AppTheme.space24),
+
+                          // Error Message Banner
+                          if (_errorMessage != null) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: AppTheme.errorColor.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                                border: Border.all(color: AppTheme.errorColor.withOpacity(0.25)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.error_outline, size: 18, color: AppTheme.errorColor),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _errorMessage!,
+                                      style: const TextStyle(
+                                        color: AppTheme.errorColor,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: AppTheme.space16),
+                          ],
+
+                          // Save Action Button
+                          BkPrimaryButton(
+                            label: isEditMode ? 'Save Unit Specifications' : 'Register Unit',
+                            isLoading: isLoading || _isUploadingPhoto,
+                            onPressed: _save,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

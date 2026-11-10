@@ -1,18 +1,22 @@
 // ignore_for_file: slash_for_doc_comments, use_build_context_synchronously, deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../config/app_theme.dart';
 import '../../core/auth_service.dart';
 import '../../core/booking_provider.dart';
 import '../../core/rental_unit_provider.dart';
 import '../../models/business.dart';
 import '../../models/booking.dart';
+import '../shared/components/bk_components.dart';
 import 'owner_booking_details_screen.dart';
 
 /**
  * Screen presenting a tabbed view of active/pending booking requests and historical logs.
  *
- * <p>Exposes inline Approve/Decline actions for pending items and navigates
- * to inspector detail cards.</p>
+ * <p>Emerald Light Marketplace design:
+ * - Clean tab navigation
+ * - Card-based request inspector with approve/decline CTAs
+ * - Status chips and transparent price calculations.</p>
  */
 class OwnerBookingRequestsScreen extends StatefulWidget {
   final Business business;
@@ -45,23 +49,25 @@ class _OwnerBookingRequestsScreenState extends State<OwnerBookingRequestsScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('${statusText.toUpperCase()} Request'),
+        backgroundColor: AppTheme.surfaceColor,
+        title: Text('${statusText.toUpperCase()} Request', style: const TextStyle(color: AppTheme.textPrimaryColor)),
         content: Text(
           'Are you sure you want to $statusText booking request #${booking.id}?\n\n'
-          'Customer: ${booking.customerId}\n'
+          'Customer ID: ${booking.customerId}\n'
           'Dates: ${_formatDate(booking.startDate)} → ${_formatDate(booking.endDate)}',
+          style: const TextStyle(color: AppTheme.textSecondaryColor),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondaryColor)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(
-              foregroundColor: targetStatus == BookingStatus.CONFIRMED ? const Color(0xFF66BB6A) : Colors.redAccent,
+              foregroundColor: targetStatus == BookingStatus.CONFIRMED ? AppTheme.brandColor : AppTheme.errorColor,
             ),
-            child: Text(statusText.toUpperCase()),
+            child: Text(statusText.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -74,9 +80,9 @@ class _OwnerBookingRequestsScreenState extends State<OwnerBookingRequestsScreen>
       try {
         await context.read<BookingProvider>().updateBookingStatus(booking.id, targetStatus, token);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Request updated successfully.'),
-            backgroundColor: const Color(0xFF66BB6A),
+            backgroundColor: AppTheme.brandColor,
           ),
         );
       } catch (e) {
@@ -84,7 +90,7 @@ class _OwnerBookingRequestsScreenState extends State<OwnerBookingRequestsScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(cleanMsg),
-            backgroundColor: Colors.redAccent,
+            backgroundColor: AppTheme.errorColor,
           ),
         );
       }
@@ -99,7 +105,6 @@ class _OwnerBookingRequestsScreenState extends State<OwnerBookingRequestsScreen>
     final units = rentalUnitProvider.getUnitsForBusiness(widget.business.id);
     final unitIds = units.map((u) => u.id).toSet();
 
-    // Filter bookings belonging to this business's units
     final businessBookings = bookingProvider.ownerBookings
         .where((b) => unitIds.contains(b.rentalUnitId))
         .toList();
@@ -110,10 +115,22 @@ class _OwnerBookingRequestsScreenState extends State<OwnerBookingRequestsScreen>
     return DefaultTabController(
       length: 2,
       child: Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
         appBar: AppBar(
-          title: Text(widget.business.name),
-          bottom: const TabBar(
-            tabs: [
+          backgroundColor: AppTheme.surfaceColor,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          title: Text(
+            widget.business.name,
+            style: const TextStyle(color: AppTheme.textPrimaryColor, fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          bottom: TabBar(
+            indicatorColor: AppTheme.brandColor,
+            labelColor: AppTheme.brandColor,
+            unselectedLabelColor: AppTheme.textSecondaryColor,
+            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 14),
+            tabs: const [
               Tab(text: 'Pending Requests'),
               Tab(text: 'Booking History'),
             ],
@@ -123,11 +140,16 @@ class _OwnerBookingRequestsScreenState extends State<OwnerBookingRequestsScreen>
           children: [
             // Pending Requests Tab
             RefreshIndicator(
+              color: AppTheme.brandColor,
               onRefresh: () async => _loadData(),
               child: pendingList.isEmpty
-                  ? _buildEmptyState('No pending requests', 'You will see new booking requests from customers here.')
+                  ? BkEmptyState(
+                      icon: Icons.assignment_turned_in_outlined,
+                      title: 'No pending requests',
+                      message: 'You will see new booking requests from customers here.',
+                    )
                   : ListView.builder(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(AppTheme.space16),
                       itemCount: pendingList.length,
                       itemBuilder: (context, index) {
                         return _buildRequestCard(pendingList[index], isPending: true);
@@ -136,11 +158,16 @@ class _OwnerBookingRequestsScreenState extends State<OwnerBookingRequestsScreen>
             ),
             // History Tab
             RefreshIndicator(
+              color: AppTheme.brandColor,
               onRefresh: () async => _loadData(),
               child: historyList.isEmpty
-                  ? _buildEmptyState('No historical bookings', 'All confirmed, completed, or cancelled bookings will be saved here.')
+                  ? BkEmptyState(
+                      icon: Icons.history_outlined,
+                      title: 'No historical bookings',
+                      message: 'All confirmed, completed, or cancelled bookings will be saved here.',
+                    )
                   : ListView.builder(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(AppTheme.space16),
                       itemCount: historyList.length,
                       itemBuilder: (context, index) {
                         return _buildRequestCard(historyList[index], isPending: false);
@@ -153,187 +180,128 @@ class _OwnerBookingRequestsScreenState extends State<OwnerBookingRequestsScreen>
     );
   }
 
-  Widget _buildEmptyState(String title, String description) {
-    return Center(
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Icon(
-              Icons.assignment_turned_in_outlined,
-              size: 72,
-              color: Colors.grey.withOpacity(0.4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              description,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildRequestCard(Booking booking, {required bool isPending}) {
-    // Status Badge Mappings
-    Color badgeColor;
-    Color textColor;
-    String statusLabel;
-
-    switch (booking.status) {
-      case BookingStatus.PENDING:
-        badgeColor = const Color(0xFFFFB74D).withOpacity(0.15);
-        textColor = const Color(0xFFFFB74D);
-        statusLabel = 'Pending';
-        break;
-      case BookingStatus.CONFIRMED:
-        badgeColor = const Color(0xFF5D5FEF).withOpacity(0.15);
-        textColor = const Color(0xFF8C8DFF);
-        statusLabel = 'Confirmed';
-        break;
-      case BookingStatus.COMPLETED:
-        badgeColor = const Color(0xFF66BB6A).withOpacity(0.15);
-        textColor = const Color(0xFF81C784);
-        statusLabel = 'Completed';
-        break;
-      case BookingStatus.CANCELLED:
-        badgeColor = const Color(0xFFEF5350).withOpacity(0.15);
-        textColor = const Color(0xFFE57373);
-        statusLabel = 'Cancelled';
-        break;
-    }
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => OwnerBookingDetailsScreen(booking: booking),
-            ),
-          );
-          _loadData();
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header ID + Status
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Booking ID: #${booking.id}',
-                    style: const TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.bold),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: badgeColor,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      statusLabel,
-                      style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: AppTheme.borderColor, width: 1.0),
+        boxShadow: AppTheme.cardShadow,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => OwnerBookingDetailsScreen(booking: booking),
               ),
-              const SizedBox(height: 12),
-
-              // Unit details
-              Text(
-                booking.rentalUnitName ?? 'Rental Unit',
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 6),
-
-              // Dates
-              Row(
-                children: [
-                  const Icon(Icons.date_range_outlined, size: 16, color: Color(0xFF5D5FEF)),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${_formatDate(booking.startDate)} → ${_formatDate(booking.endDate)}',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-
-              // Notes preview
-              if (booking.notes != null && booking.notes!.isNotEmpty) ...[
-                const SizedBox(height: 4),
+            ).then((_) => _loadData());
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.space16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Icon(Icons.notes, size: 14, color: Colors.grey),
-                    const SizedBox(width: 8),
+                    Text(
+                      'Booking ID: #${booking.id}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: AppTheme.textPrimaryColor,
+                      ),
+                    ),
+                    BkBookingStatusChip(status: booking.status),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Icon(Icons.wc, size: 16, color: AppTheme.brandColor),
+                    const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        booking.notes!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                        booking.rentalUnitName ?? 'Rental Unit #${booking.rentalUnitId}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimaryColor,
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ],
-
-              const Divider(color: Colors.white10, height: 24),
-
-              // Pricing Summary
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'R ${booking.totalPrice.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      color: Color(0xFFFFB74D),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today, size: 14, color: AppTheme.textSecondaryColor),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${_formatDate(booking.startDate)} → ${_formatDate(booking.endDate)}',
+                      style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
                     ),
-                  ),
-                  if (isPending)
-                    Row(
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Divider(color: AppTheme.borderColor),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        OutlinedButton(
-                          onPressed: () => _updateStatus(booking, BookingStatus.CANCELLED),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.redAccent,
-                            side: const BorderSide(color: Colors.redAccent),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        const Text('Total Price', style: TextStyle(fontSize: 11, color: AppTheme.textSecondaryColor)),
+                        Text(
+                          'R ${booking.totalPrice.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.brandColor,
                           ),
-                          child: const Text('Decline'),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: () => _updateStatus(booking, BookingStatus.CONFIRMED),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF5D5FEF),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          ),
-                          child: const Text('Approve'),
                         ),
                       ],
-                    )
-                  else
-                    const Icon(Icons.chevron_right, color: Colors.grey),
-                ],
-              ),
-            ],
+                    ),
+                    if (isPending)
+                      Row(
+                        children: [
+                          OutlinedButton(
+                            onPressed: () => _updateStatus(booking, BookingStatus.CANCELLED),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 36),
+                              foregroundColor: AppTheme.errorColor,
+                              side: const BorderSide(color: AppTheme.errorColor, width: 1.2),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusSmall)),
+                            ),
+                            child: const Text('Decline', style: TextStyle(fontSize: 12)),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () => _updateStatus(booking, BookingStatus.CONFIRMED),
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size(0, 36),
+                              backgroundColor: AppTheme.brandColor,
+                              foregroundColor: AppTheme.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusSmall)),
+                            ),
+                            child: const Text('Approve', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      )
+                    else
+                      const Icon(Icons.chevron_right, color: AppTheme.textSecondaryColor),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -341,10 +309,6 @@ class _OwnerBookingRequestsScreenState extends State<OwnerBookingRequestsScreen>
   }
 
   String _formatDate(DateTime date) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 }

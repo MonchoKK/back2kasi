@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../config/app_theme.dart';
 import '../../../models/rental_unit_image.dart';
 import 'cached_image_view.dart';
 
@@ -52,7 +53,7 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Maximum of ${widget.maxImages} photos reached'),
-          backgroundColor: Colors.orangeAccent,
+          backgroundColor: AppTheme.accentColor,
         ),
       );
       return;
@@ -97,7 +98,7 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
   void _showImageSourceDialog() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF161524),
+      backgroundColor: AppTheme.surfaceColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -112,28 +113,32 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.white24,
+                  color: AppTheme.borderColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               const Text(
                 'Add Unit Photo',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.darkTextColor,
+                ),
               ),
               const SizedBox(height: 16),
               ListTile(
-                leading: const Icon(Icons.photo_library_outlined, color: Color(0xFF5D5FEF)),
-                title: const Text('Choose from Gallery'),
-                subtitle: const Text('JPEG, PNG, WebP (up to 5 MB)'),
+                leading: const Icon(Icons.photo_library_outlined, color: AppTheme.primaryColor),
+                title: const Text('Choose from Gallery', style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.darkTextColor)),
+                subtitle: const Text('JPEG, PNG, WebP (up to 5 MB)', style: TextStyle(color: AppTheme.secondaryTextColor)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickImage(ImageSource.gallery);
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.camera_alt_outlined, color: Color(0xFFFFB74D)),
-                title: const Text('Take a Photo'),
-                subtitle: const Text('Capture with device camera'),
+                leading: const Icon(Icons.camera_alt_outlined, color: AppTheme.accentColor),
+                title: const Text('Take a Photo', style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.darkTextColor)),
+                subtitle: const Text('Capture with device camera', style: TextStyle(color: AppTheme.secondaryTextColor)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickImage(ImageSource.camera);
@@ -156,11 +161,15 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
           children: [
             Row(
               children: [
-                const Icon(Icons.photo_camera_back_outlined, size: 18, color: Color(0xFF5D5FEF)),
+                const Icon(Icons.photo_camera_back_outlined, size: 20, color: AppTheme.primaryColor),
                 const SizedBox(width: 8),
                 Text(
                   'Listing Photos ($_totalCount/${widget.maxImages})',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: AppTheme.darkTextColor,
+                  ),
                 ),
               ],
             ),
@@ -169,16 +178,16 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
                 onPressed: _showImageSourceDialog,
                 icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
                 label: const Text('Add Photo'),
-                style: TextButton.styleFrom(foregroundColor: const Color(0xFF5D5FEF)),
+                style: TextButton.styleFrom(foregroundColor: AppTheme.primaryColor),
               ),
           ],
         ),
-        const SizedBox(height: 8),
-        Text(
+        const SizedBox(height: 6),
+        const Text(
           'Upload up to 5 photos. Tap a photo to set it as the primary cover.',
-          style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+          style: TextStyle(color: AppTheme.secondaryTextColor, fontSize: 13),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         SizedBox(
           height: 120,
           child: ListView.separated(
@@ -207,8 +216,8 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
         if (widget.isUploading) ...[
           const SizedBox(height: 12),
           const LinearProgressIndicator(
-            backgroundColor: Color(0xFF1E1D2E),
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF5D5FEF)),
+            backgroundColor: Color(0xFFE2E8F0),
+            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
           ),
         ],
       ],
@@ -228,11 +237,19 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
             width: 120,
             height: 120,
             decoration: BoxDecoration(
+              color: AppTheme.surfaceColor,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: img.isPrimary ? const Color(0xFFFFB74D) : Colors.white10,
-                width: img.isPrimary ? 2 : 1,
+                color: img.isPrimary ? AppTheme.accentColor : AppTheme.borderColor,
+                width: img.isPrimary ? 2.5 : 1,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(15),
@@ -252,20 +269,26 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
             bottom: 6,
             left: 6,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFB74D),
+                color: AppTheme.accentColor,
                 borderRadius: BorderRadius.circular(6),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 4,
+                  ),
+                ],
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.star, size: 10, color: Colors.black),
-                  SizedBox(width: 2),
+                  Icon(Icons.star, size: 10, color: Colors.white),
+                  SizedBox(width: 3),
                   Text(
                     'COVER',
                     style: TextStyle(
-                      color: Colors.black,
+                      color: Colors.white,
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
                     ),
@@ -283,8 +306,8 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
             onTap: () => widget.onRemoteDelete?.call(img),
             child: Container(
               padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: Colors.black54,
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.close, size: 14, color: Colors.white),
@@ -304,11 +327,19 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
           width: 120,
           height: 120,
           decoration: BoxDecoration(
+            color: AppTheme.surfaceColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isFirstTotal ? const Color(0xFFFFB74D) : Colors.white12,
-              width: isFirstTotal ? 2 : 1,
+              color: isFirstTotal ? AppTheme.accentColor : AppTheme.borderColor,
+              width: isFirstTotal ? 2.5 : 1,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(15),
@@ -326,20 +357,26 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
             bottom: 6,
             left: 6,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFB74D),
+                color: AppTheme.accentColor,
                 borderRadius: BorderRadius.circular(6),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 4,
+                  ),
+                ],
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.star, size: 10, color: Colors.black),
-                  SizedBox(width: 2),
+                  Icon(Icons.star, size: 10, color: Colors.white),
+                  SizedBox(width: 3),
                   Text(
                     'COVER',
                     style: TextStyle(
-                      color: Colors.black,
+                      color: Colors.white,
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
                     ),
@@ -357,8 +394,8 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
             onTap: () => widget.onLocalImageRemoved?.call(localIndex),
             child: Container(
               padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: Colors.black54,
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.close, size: 14, color: Colors.white),
@@ -377,21 +414,26 @@ class _ImageUploadGridState extends State<ImageUploadGrid> {
         width: 100,
         height: 120,
         decoration: BoxDecoration(
-          color: const Color(0xFF161524),
+          color: AppTheme.surfaceColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: const Color(0xFF5D5FEF).withOpacity(0.3),
+            color: AppTheme.primaryColor.withOpacity(0.35),
             style: BorderStyle.solid,
+            width: 1.5,
           ),
         ),
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add_photo_alternate_outlined, color: Color(0xFF5D5FEF), size: 28),
+            Icon(Icons.add_photo_alternate_outlined, color: AppTheme.primaryColor, size: 28),
             SizedBox(height: 6),
             Text(
               'Add Photo',
-              style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.primaryColor,
+              ),
             ),
           ],
         ),

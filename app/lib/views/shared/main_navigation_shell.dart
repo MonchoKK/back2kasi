@@ -1,5 +1,6 @@
 // ignore_for_file: slash_for_doc_comments, deprecated_member_use
 import 'package:flutter/material.dart';
+import '../../config/app_theme.dart';
 import '../customer/browse_screen.dart';
 import '../booking/my_bookings_screen.dart';
 import '../business/dashboard_screen.dart';
@@ -7,8 +8,7 @@ import '../business/dashboard_screen.dart';
 /**
  * Main shell routing authenticated traffic between Browse, My Bookings, and Owner Mode.
  *
- * <p>Wraps a BottomNavigationBar supporting transitions between rentals browsing
- * (index 0), booking history (index 1), and owner portal dashboard (index 2).</p>
+ * <p>Wraps a clean, modern BottomNavigationBar matching the Emerald Light identity.</p>
  */
 class MainNavigationShell extends StatefulWidget {
   final int initialIndex;
@@ -36,15 +36,17 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
       ),
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
+          color: AppTheme.surfaceColor,
           border: Border(
             top: BorderSide(
-              color: Colors.white.withOpacity(0.05),
+              color: AppTheme.borderColor,
               width: 1,
             ),
           ),
@@ -56,10 +58,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               _currentIndex = index;
             });
           },
-          backgroundColor: const Color(0xFF0F0E17),
-          selectedItemColor: const Color(0xFF5D5FEF),
-          unselectedItemColor: const Color(0xFF94A3B8),
+          backgroundColor: AppTheme.surfaceColor,
+          selectedItemColor: AppTheme.brandColor,
+          unselectedItemColor: AppTheme.textSecondaryColor,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 12),
           showUnselectedLabels: true,
+          elevation: 0,
           type: BottomNavigationBarType.fixed,
           items: const [
             BottomNavigationBarItem(

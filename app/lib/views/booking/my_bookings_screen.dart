@@ -1,16 +1,20 @@
 // ignore_for_file: slash_for_doc_comments, use_build_context_synchronously, deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../config/app_theme.dart';
 import '../../core/auth_service.dart';
 import '../../core/booking_provider.dart';
 import '../../models/booking.dart';
+import '../shared/components/bk_components.dart';
 import 'booking_details_screen.dart';
 
 /**
  * Screen displaying the user's booking history.
  *
- * <p>Fetches bookings from the backend via {@link BookingProvider} and displays
- * them as cards with status badges. Pending bookings can be cancelled.</p>
+ * <p>Emerald Light Marketplace design:
+ * - Status chips with dot indicators
+ * - Clean white cards with borders and subtle elevation
+ * - Clear date ranges and total price breakdown.</p>
  */
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
@@ -35,7 +39,6 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<BookingProvider>();
@@ -44,11 +47,12 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     final errorMessage = provider.errorMessage;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Bookings'),
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: BkAppBar(
+        title: 'My Bookings',
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: AppTheme.textSecondaryColor),
             onPressed: _loadBookings,
           ),
         ],
@@ -59,23 +63,28 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
           if (errorMessage != null && bookings.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(12),
-              color: Colors.redAccent.withOpacity(0.1),
+              color: AppTheme.errorColor.withOpacity(0.08),
               child: Text(
                 errorMessage,
-                style: const TextStyle(color: Colors.redAccent),
+                style: const TextStyle(color: AppTheme.errorColor),
                 textAlign: TextAlign.center,
               ),
             ),
 
           Expanded(
             child: isLoading && bookings.isEmpty
-                ? const Center(child: CircularProgressIndicator())
+                ? const BkLoadingIndicator(message: 'Loading your bookings...')
                 : RefreshIndicator(
+                    color: AppTheme.brandColor,
                     onRefresh: () async => _loadBookings(),
                     child: bookings.isEmpty
-                        ? _buildEmptyState()
+                        ? BkEmptyState(
+                            icon: Icons.calendar_today_outlined,
+                            title: 'No bookings yet',
+                            message: 'Browse available rental units in your kasi and place your first reservation.',
+                          )
                         : ListView.builder(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(AppTheme.space16),
                             itemCount: bookings.length,
                             itemBuilder: (context, index) {
                               return _buildBookingCard(bookings[index]);
@@ -88,182 +97,125 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Icon(
-              Icons.calendar_today_outlined,
-              size: 80,
-              color: Colors.grey.withOpacity(0.5),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'No bookings yet',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Browse available rental units and make your first booking.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildBookingCard(Booking booking) {
-    // Status badge styling
-    Color badgeColor;
-    Color textColor;
-    IconData statusIcon;
-    String statusLabel;
-
-    switch (booking.status) {
-      case BookingStatus.PENDING:
-        badgeColor = const Color(0xFFFFB74D).withOpacity(0.15);
-        textColor = const Color(0xFFFFB74D);
-        statusIcon = Icons.schedule;
-        statusLabel = 'Pending';
-        break;
-      case BookingStatus.CONFIRMED:
-        badgeColor = const Color(0xFF5D5FEF).withOpacity(0.15);
-        textColor = const Color(0xFF8C8DFF);
-        statusIcon = Icons.check_circle_outline;
-        statusLabel = 'Confirmed';
-        break;
-      case BookingStatus.COMPLETED:
-        badgeColor = const Color(0xFF66BB6A).withOpacity(0.15);
-        textColor = const Color(0xFF81C784);
-        statusIcon = Icons.done_all;
-        statusLabel = 'Completed';
-        break;
-      case BookingStatus.CANCELLED:
-        badgeColor = const Color(0xFFEF5350).withOpacity(0.15);
-        textColor = const Color(0xFFE57373);
-        statusIcon = Icons.cancel_outlined;
-        statusLabel = 'Cancelled';
-        break;
-    }
-
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => BookingDetailsScreen(booking: booking),
-            ),
-          );
-          // Refresh list on pop to catch status updates
-          _loadBookings();
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header: Status + Booking ID
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: badgeColor,
-                      borderRadius: BorderRadius.circular(8),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: AppTheme.borderColor, width: 1.0),
+        boxShadow: AppTheme.cardShadow,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => BookingDetailsScreen(booking: booking),
+              ),
+            );
+            _loadBookings();
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.space16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header: Status + Booking ID
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    BkBookingStatusChip(status: booking.status),
+                    Text(
+                      'Booking #${booking.id}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondaryColor,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(statusIcon, size: 14, color: textColor),
-                        const SizedBox(width: 4),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Rental Unit Name
+                Text(
+                  booking.rentalUnitName ?? 'Rental Unit #${booking.rentalUnitId}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimaryColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+
+                // Business Name
+                if (booking.businessName != null) ...[
+                  Row(
+                    children: [
+                      const Icon(Icons.storefront, size: 14, color: AppTheme.brandColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        booking.businessName!,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.textSecondaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+
+                // Dates
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today, size: 14, color: AppTheme.textSecondaryColor),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${_formatDate(booking.startDate)} → ${_formatDate(booking.endDate)}',
+                      style: const TextStyle(fontSize: 13, color: AppTheme.textSecondaryColor),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+                const Divider(color: AppTheme.borderColor),
+                const SizedBox(height: 8),
+
+                // Price and Arrow
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'R ${booking.totalPrice.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.brandColor,
+                      ),
+                    ),
+                    Row(
+                      children: const [
                         Text(
-                          statusLabel,
+                          'View Details',
                           style: TextStyle(
-                            color: textColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.brandColor,
                           ),
                         ),
+                        SizedBox(width: 4),
+                        Icon(Icons.chevron_right, size: 18, color: AppTheme.brandColor),
                       ],
                     ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    'Booking #${booking.id}',
-                    style: const TextStyle(
-                      color: Color(0xFF94A3B8),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // Business and Unit Names
-              Text(
-                booking.businessName ?? 'Service Provider',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                  ],
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                booking.rentalUnitName ?? 'Rental Unit',
-                style: const TextStyle(
-                  color: Color(0xFF8C8DFF),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Divider(color: Colors.white10),
-              const SizedBox(height: 12),
-
-              // Dates
-              Row(
-                children: [
-                  const Icon(Icons.date_range, size: 18, color: Color(0xFF5D5FEF)),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${_formatDate(booking.startDate)} → ${_formatDate(booking.endDate)}',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 8),
-
-              // Duration
-              Row(
-                children: [
-                  const Icon(Icons.timer_outlined, size: 16, color: Colors.grey),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${booking.endDate.difference(booking.startDate).inDays + 1} day(s)',
-                    style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-                  ),
-                  const Spacer(),
-                  Text(
-                    'R ${booking.totalPrice.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      color: Color(0xFFFFB74D),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -271,10 +223,6 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   }
 
   String _formatDate(DateTime date) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 }

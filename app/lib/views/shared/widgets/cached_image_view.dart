@@ -2,6 +2,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../config/api_config.dart';
+import '../../../config/app_theme.dart';
 
 /**
  * Reusable cached network image widget with graceful fallbacks and loading states.
@@ -35,14 +36,14 @@ class CachedImageView extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1D2E),
+          color: const Color(0xFF1E2433),
           borderRadius: borderRadius,
         ),
         alignment: Alignment.center,
         child: child ??
             Icon(
               fallbackIcon,
-              color: Colors.white24,
+              color: const Color(0xFF94A3B8),
               size: iconSize,
             ),
       );
@@ -63,14 +64,14 @@ class CachedImageView extends StatelessWidget {
           height: 24,
           child: CircularProgressIndicator(
             strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF5D5FEF)),
+            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
           ),
         ),
       ),
       errorWidget: (context, url, error) => placeholderContainer(
         Icon(
           Icons.broken_image_outlined,
-          color: Colors.white24,
+          color: const Color(0xFF94A3B8),
           size: iconSize,
         ),
       ),

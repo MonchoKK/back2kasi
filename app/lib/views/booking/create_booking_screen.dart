@@ -1,13 +1,17 @@
 // ignore_for_file: slash_for_doc_comments, use_build_context_synchronously, deprecated_member_use
 import 'package:flutter/material.dart';
+import '../../config/app_theme.dart';
 import '../../models/rental_unit.dart';
+import '../shared/components/bk_components.dart';
 import 'booking_confirmation_screen.dart';
 
 /**
  * Screen for selecting dates and adding notes for a booking.
  *
- * <p>Validates that date ranges are in the future and satisfy duration rules,
- * calculates an estimated price, and transitions to the confirmation view.</p>
+ * <p>Emerald Light Marketplace design:
+ * - Interactive date range picker with Emerald brand highlights
+ * - Live rental duration and cost calculation
+ * - Clean input field for special delivery instructions.</p>
  */
 class CreateBookingScreen extends StatefulWidget {
   final RentalUnit unit;
@@ -33,7 +37,6 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
 
   Future<void> _pickDateRange() async {
     final now = DateTime.now();
-    // Validate: start date must be tomorrow or later (future dates only)
     final tomorrow = DateTime(now.year, dateMonthTomorrow(now), dateDayTomorrow(now));
     
     final picked = await showDateRangePicker(
@@ -45,10 +48,10 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF5D5FEF),
-              onPrimary: Colors.white,
-              surface: Color(0xFF161524),
-              onSurface: Colors.white,
+              primary: AppTheme.brandColor,
+              onPrimary: AppTheme.darkColor,
+              surface: AppTheme.surfaceColor,
+              onSurface: AppTheme.textPrimaryColor,
             ),
           ),
           child: child!,
@@ -57,7 +60,6 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
     );
 
     if (picked != null) {
-      // Validate: end date must not be before start date
       if (picked.end.isBefore(picked.start)) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Invalid date range selection')),
@@ -111,21 +113,23 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
     final String typeLabel = unit.rentalUnitType.toString().split('.').last.replaceAll('_', ' ');
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Book Rental Unit'),
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: const BkAppBar(
+        title: 'Book Rental Unit',
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppTheme.space20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Unit Summary Card
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(AppTheme.space20),
               decoration: BoxDecoration(
-                color: const Color(0xFF161524),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                color: AppTheme.surfaceColor,
+                borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+                border: Border.all(color: AppTheme.borderColor, width: 1.0),
+                boxShadow: AppTheme.cardShadow,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,13 +139,13 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF5D5FEF).withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(6),
+                          color: AppTheme.brandColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                         ),
                         child: Text(
                           typeLabel,
                           style: const TextStyle(
-                            color: Color(0xFF8C8DFF),
+                            color: AppTheme.brandColor,
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
@@ -155,34 +159,32 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimaryColor,
+                      letterSpacing: -0.3,
                     ),
                   ),
                   if (unit.description != null && unit.description!.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(
                       unit.description!,
-                      style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                      style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
                     ),
                   ],
-                  const SizedBox(height: 12),
-                  const Divider(color: Colors.white10),
+                  const SizedBox(height: 14),
+                  const Divider(color: AppTheme.borderColor),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.people_outline, size: 16, color: Colors.grey),
+                      const Icon(Icons.people_outline, size: 16, color: AppTheme.textSecondaryColor),
                       const SizedBox(width: 4),
                       Text(
-                        'Capacity: ${unit.capacity}',
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        'Capacity: ${unit.capacity} units',
+                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
                       ),
                       const Spacer(),
-                      Text(
-                        'R ${unit.pricePerDay.toStringAsFixed(2)} / day',
-                        style: const TextStyle(
-                          color: Color(0xFFFFB74D),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+                      BkPriceDisplay(
+                        pricePerDay: unit.pricePerDay,
+                        fontSize: 16,
                       ),
                     ],
                   ),
@@ -190,111 +192,109 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: AppTheme.space24),
 
             // Date Selection
             const Text(
               'Select Rental Dates',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimaryColor),
             ),
             const SizedBox(height: 12),
             InkWell(
+              borderRadius: BorderRadius.circular(AppTheme.radiusCard),
               onTap: _pickDateRange,
-              borderRadius: BorderRadius.circular(16),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                padding: const EdgeInsets.all(AppTheme.space16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF161524),
-                  borderRadius: BorderRadius.circular(16),
+                  color: AppTheme.surfaceColor,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusCard),
                   border: Border.all(
-                    color: _selectedRange != null
-                        ? const Color(0xFF5D5FEF)
-                        : Colors.white.withOpacity(0.1),
+                    color: _selectedRange != null ? AppTheme.brandColor : AppTheme.borderColor,
+                    width: _selectedRange != null ? 1.5 : 1.0,
                   ),
+                  boxShadow: AppTheme.cardShadow,
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.calendar_today, color: Color(0xFF5D5FEF)),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _selectedRange == null
-                          ? const Text(
-                              'Tap to select start & end dates',
-                              style: TextStyle(color: Colors.grey),
-                            )
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${_formatDate(_selectedRange!.start)} → ${_formatDate(_selectedRange!.end)}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '$_numberOfDays day${_numberOfDays == 1 ? '' : 's'}',
-                                  style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
-                                ),
-                              ],
-                            ),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppTheme.brandColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                      ),
+                      child: const Icon(Icons.calendar_today, color: AppTheme.brandColor, size: 20),
                     ),
-                    const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _selectedRange == null ? 'Choose start & end dates' : 'Selected Duration',
+                            style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 12),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _selectedRange == null
+                                ? 'Tap to choose dates'
+                                : '${_formatDate(_selectedRange!.start)} → ${_formatDate(_selectedRange!.end)}',
+                            style: TextStyle(
+                              color: _selectedRange == null ? AppTheme.textSecondaryColor : AppTheme.textPrimaryColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right, color: AppTheme.textSecondaryColor),
                   ],
                 ),
               ),
             ),
 
-            const SizedBox(height: 20),
-
-            // Notes Field
-            const Text(
-              'Notes (optional)',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _notesController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                hintText: 'Any special requirements...',
-              ),
-            ),
-
-            const SizedBox(height: 32),
-
-            // Price Summary
+            // Estimated Price Calculation
             if (_selectedRange != null) ...[
+              const SizedBox(height: AppTheme.space20),
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(AppTheme.space16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF161524),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF5D5FEF).withOpacity(0.3)),
+                  color: AppTheme.surfaceColor,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+                  border: Border.all(color: AppTheme.borderColor, width: 1.0),
+                  boxShadow: AppTheme.cardShadow,
                 ),
                 child: Column(
                   children: [
-                    _buildSummaryRow('Price per day', 'R ${unit.pricePerDay.toStringAsFixed(2)}'),
-                    const SizedBox(height: 8),
-                    _buildSummaryRow('Number of days', '$_numberOfDays'),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Divider(color: Colors.white10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'R ${unit.pricePerDay.toStringAsFixed(2)} × $_numberOfDays days',
+                          style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
+                        ),
+                        Text(
+                          'R ${_totalPrice.toStringAsFixed(2)}',
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textPrimaryColor),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 12),
+                    const Divider(color: AppTheme.borderColor),
+                    const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
                           'Estimated Total',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimaryColor),
                         ),
                         Text(
                           'R ${_totalPrice.toStringAsFixed(2)}',
                           style: const TextStyle(
-                            fontSize: 22,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFFFFB74D),
+                            color: AppTheme.brandColor,
                           ),
                         ),
                       ],
@@ -302,16 +302,25 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
             ],
 
-            // Review Button
-            SizedBox(
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _reviewBooking,
-                child: const Text('Review Booking'),
-              ),
+            const SizedBox(height: AppTheme.space24),
+
+            // Additional Notes / Delivery Instructions
+            BkTextField(
+              controller: _notesController,
+              label: 'Delivery Notes / Special Instructions (Optional)',
+              hintText: 'e.g. Please position unit near the rear marquee entrance...',
+              maxLines: 3,
+            ),
+
+            const SizedBox(height: AppTheme.space32),
+
+            // Review CTA Button
+            BkPrimaryButton(
+              label: 'Review Booking Request',
+              icon: Icons.check_circle_outline,
+              onPressed: _reviewBooking,
             ),
           ],
         ),
@@ -319,21 +328,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
     );
   }
 
-  Widget _buildSummaryRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(color: Color(0xFF94A3B8))),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
-      ],
-    );
-  }
-
   String _formatDate(DateTime date) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 }

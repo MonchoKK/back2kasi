@@ -1,18 +1,20 @@
 // ignore_for_file: slash_for_doc_comments, use_build_context_synchronously, deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../config/app_theme.dart';
 import '../../core/rental_unit_provider.dart';
 import '../../models/business.dart';
 import '../../models/rental_unit.dart';
 import '../booking/create_booking_screen.dart';
+import '../shared/components/bk_components.dart';
 import '../shared/widgets/cached_image_view.dart';
+import 'rental_unit_detail_screen.dart';
 
 /**
  * Screen presenting details of a selected business and its available rental units
  * from a customer perspective.
  *
- * <p>Retrieves rental units via {@link RentalUnitProvider} and lets the customer
- * book them.</p>
+ * <p>Styled according to the Emerald Light Marketplace identity.</p>
  */
 class CustomerBusinessDetailScreen extends StatefulWidget {
   final Business business;
@@ -47,8 +49,9 @@ class _CustomerBusinessDetailScreenState extends State<CustomerBusinessDetailScr
     final availableUnits = units.where((u) => u.status == RentalUnitStatus.AVAILABLE).toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.business.name),
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: BkAppBar(
+        title: widget.business.name,
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -60,10 +63,10 @@ class _CustomerBusinessDetailScreenState extends State<CustomerBusinessDetailScr
           if (errorMessage != null && availableUnits.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(12),
-              color: Colors.redAccent.withOpacity(0.1),
+              color: AppTheme.errorColor.withOpacity(0.08),
               child: Text(
                 errorMessage,
-                style: const TextStyle(color: Colors.redAccent),
+                style: const TextStyle(color: AppTheme.errorColor, fontSize: 13),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -75,20 +78,28 @@ class _CustomerBusinessDetailScreenState extends State<CustomerBusinessDetailScr
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
+                color: AppTheme.textPrimaryColor,
+                letterSpacing: -0.2,
               ),
             ),
           ),
 
           Expanded(
             child: isLoading && availableUnits.isEmpty
-                ? const Center(child: CircularProgressIndicator())
+                ? const BkLoadingIndicator(message: 'Loading inventory...')
                 : RefreshIndicator(
+                    color: AppTheme.brandColor,
                     onRefresh: () async => _loadUnits(),
                     child: availableUnits.isEmpty
-                        ? _buildEmptyState(errorMessage)
+                        ? BkEmptyState(
+                            icon: errorMessage != null ? Icons.wifi_off : Icons.inventory_2_outlined,
+                            title: errorMessage != null ? 'Unable to load inventory' : 'No units available',
+                            message: errorMessage ?? 'All units from this provider are currently booked or offline.',
+                            actionLabel: 'Refresh',
+                            onAction: _loadUnits,
+                          )
                         : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             itemCount: availableUnits.length,
                             itemBuilder: (context, index) {
                               final unit = availableUnits[index];
@@ -107,23 +118,31 @@ class _CustomerBusinessDetailScreenState extends State<CustomerBusinessDetailScr
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF161524),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: AppTheme.borderColor, width: 1.0),
+        boxShadow: AppTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.storefront, color: Color(0xFF5D5FEF), size: 24),
-              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.brandColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                ),
+                child: const Icon(Icons.storefront, color: AppTheme.brandColor, size: 22),
+              ),
+              const SizedBox(width: 10),
               Text(
                 widget.business.businessType == BusinessType.TOILET_RENTAL
-                    ? 'Toilet Rental Agency'
+                    ? 'Sanitation & Toilet Rental'
                     : 'Cold Storage Provider',
                 style: const TextStyle(
-                  color: Color(0xFF94A3B8),
+                  color: AppTheme.brandColor,
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
@@ -134,19 +153,19 @@ class _CustomerBusinessDetailScreenState extends State<CustomerBusinessDetailScr
           if (widget.business.description != null && widget.business.description!.isNotEmpty)
             Text(
               widget.business.description!,
-              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+              style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 14, height: 1.4),
             ),
           const SizedBox(height: 12),
-          const Divider(color: Colors.white10),
+          const Divider(color: AppTheme.borderColor),
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.location_on_outlined, size: 16, color: Colors.grey),
+              const Icon(Icons.location_on_outlined, size: 16, color: AppTheme.textSecondaryColor),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   widget.business.address,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
                 ),
               ),
             ],
@@ -154,11 +173,11 @@ class _CustomerBusinessDetailScreenState extends State<CustomerBusinessDetailScr
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.phone_outlined, size: 16, color: Colors.grey),
+              const Icon(Icons.phone_outlined, size: 16, color: AppTheme.textSecondaryColor),
               const SizedBox(width: 6),
               Text(
                 widget.business.phoneNumber,
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
               ),
             ],
           ),
@@ -167,138 +186,146 @@ class _CustomerBusinessDetailScreenState extends State<CustomerBusinessDetailScr
     );
   }
 
-  Widget _buildEmptyState(String? errorMessage) {
-    return Center(
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Icon(
-              errorMessage != null ? Icons.wifi_off : Icons.inventory_2_outlined,
-              size: 80,
-              color: Colors.grey.withOpacity(0.5),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              errorMessage != null ? 'Unable to load inventory' : 'No units available',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              errorMessage ?? 'All units from this provider are currently booked or offline.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildUnitCard(RentalUnit unit) {
     final String typeLabel = unit.rentalUnitType.toString().split('.').last.replaceAll('_', ' ');
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: AppTheme.borderColor, width: 1.0),
+        boxShadow: AppTheme.cardShadow,
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Unit Cover Photo or Icon Header
           if (unit.displayImageUrl != null)
-            CachedImageView(
-              imageUrl: unit.displayImageUrl,
-              height: 160,
-              width: double.infinity,
-              fit: BoxFit.cover,
+            InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => RentalUnitDetailScreen(
+                      unit: unit,
+                      business: widget.business,
+                    ),
+                  ),
+                );
+              },
+              child: CachedImageView(
+                imageUrl: unit.displayImageUrl,
+                height: 160,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             ),
 
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppTheme.space16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF66BB6A).withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(6),
+                        color: AppTheme.brandColor.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusPill),
                       ),
                       child: const Text(
                         'Available',
-                        style: TextStyle(color: Color(0xFF81C784), fontSize: 11, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: AppTheme.brandColor, fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       typeLabel,
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 12),
                     ),
                     const Spacer(),
                     if (unit.images.isNotEmpty)
                       Row(
                         children: [
-                          const Icon(Icons.photo_library_outlined, size: 14, color: Colors.grey),
+                          const Icon(Icons.photo_library_outlined, size: 14, color: AppTheme.textSecondaryColor),
                           const SizedBox(width: 4),
                           Text(
                             '${unit.images.length}',
-                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
                           ),
                         ],
                       ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Text(
                   unit.name,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textPrimaryColor),
                 ),
                 if (unit.description != null && unit.description!.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Text(
                     unit.description!,
-                    style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                    style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
-                const SizedBox(height: 16),
-                const Divider(color: Colors.white10),
+                const SizedBox(height: 14),
+                const Divider(color: AppTheme.borderColor),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.people_outline, size: 16, color: Colors.grey),
+                    const Icon(Icons.people_outline, size: 16, color: AppTheme.textSecondaryColor),
                     const SizedBox(width: 4),
                     Text(
                       'Capacity: ${unit.capacity}',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
                     ),
                     const Spacer(),
-                    Text(
-                      'R ${unit.pricePerDay.toStringAsFixed(2)} / day',
-                      style: const TextStyle(
-                        color: Color(0xFFFFB74D),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                    BkPriceDisplay(
+                      pricePerDay: unit.pricePerDay,
+                      fontSize: 17,
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CreateBookingScreen(unit: unit),
-                        ),
-                      );
-                    },
-                    child: const Text('Book Now'),
-                  ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: BkSecondaryButton(
+                        label: 'View Details',
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => RentalUnitDetailScreen(
+                                unit: unit,
+                                business: widget.business,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: BkPrimaryButton(
+                        label: 'Book Now',
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CreateBookingScreen(unit: unit),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

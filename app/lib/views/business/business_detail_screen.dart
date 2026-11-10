@@ -1,16 +1,23 @@
 // ignore_for_file: slash_for_doc_comments, use_build_context_synchronously, deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../config/app_theme.dart';
 import '../../core/auth_service.dart';
 import '../../core/rental_unit_provider.dart';
 import '../../models/business.dart';
 import '../../models/rental_unit.dart';
 import '../rental_unit/create_edit_unit_screen.dart';
+import '../shared/components/bk_components.dart';
 import '../shared/widgets/cached_image_view.dart';
 
 /**
  * Screen displaying details of a specific business profile and listing its
  * registered rental units (toilets, cold rooms).
+ *
+ * <p>Emerald Light Marketplace design:
+ * - Inventory status filter chips (All, Available, Rented, Maintenance)
+ * - Clean white cards with image preview and status badges
+ * - One-tap status toggling and quick catalogue editing.</p>
  */
 class BusinessDetailScreen extends StatefulWidget {
   final Business business;
@@ -69,7 +76,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: AppTheme.errorColor,
         ),
       );
     }
@@ -79,16 +86,20 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Unit'),
-        content: Text('Are you sure you want to permanently delete "${unit.name}"? This cannot be undone.'),
+        backgroundColor: AppTheme.surfaceColor,
+        title: const Text('Delete Unit', style: TextStyle(color: AppTheme.textPrimaryColor)),
+        content: Text(
+          'Are you sure you want to permanently delete "${unit.name}"? This cannot be undone.',
+          style: const TextStyle(color: AppTheme.textSecondaryColor),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondaryColor)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
             child: const Text('Delete'),
           ),
         ],
@@ -107,7 +118,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(e.toString().replaceAll('Exception: ', '')),
-              backgroundColor: Colors.redAccent,
+              backgroundColor: AppTheme.errorColor,
             ),
           );
         }
@@ -123,15 +134,18 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       label: Text(label),
       labelStyle: TextStyle(
         fontSize: 12,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        color: isSelected ? Colors.white : const Color(0xFF94A3B8),
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+        color: isSelected ? AppTheme.white : AppTheme.textSecondaryColor,
       ),
-      backgroundColor: const Color(0xFF161524),
-      selectedColor: const Color(0xFF5D5FEF),
+      backgroundColor: AppTheme.surfaceColor,
+      selectedColor: AppTheme.brandColor,
+      elevation: isSelected ? 1 : 0,
+      pressElevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppTheme.radiusPill),
         side: BorderSide(
-          color: isSelected ? const Color(0xFF5D5FEF) : Colors.white.withOpacity(0.06),
+          color: isSelected ? AppTheme.brandColor : AppTheme.borderColor,
+          width: 1.2,
         ),
       ),
       onSelected: (val) {
@@ -153,11 +167,12 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     final errorMessage = provider.errorMessage;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.business.name),
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: BkAppBar(
+        title: widget.business.name,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: AppTheme.textSecondaryColor),
             onPressed: _loadData,
           ),
         ],
@@ -172,10 +187,10 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
           if (errorMessage != null && units.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(12),
-              color: Colors.redAccent.withOpacity(0.1),
+              color: AppTheme.errorColor.withOpacity(0.08),
               child: Text(
                 errorMessage,
-                style: const TextStyle(color: Colors.redAccent),
+                style: const TextStyle(color: AppTheme.errorColor),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -190,12 +205,13 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
+                    color: AppTheme.textPrimaryColor,
+                    letterSpacing: -0.2,
                   ),
                 ),
                 Text(
                   '${filteredUnits.length} of ${units.length}',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
                 ),
               ],
             ),
@@ -234,11 +250,33 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
           Expanded(
             child: isLoading && units.isEmpty
-                ? const Center(child: CircularProgressIndicator())
+                ? const BkLoadingIndicator(message: 'Loading rental units...')
                 : RefreshIndicator(
+                    color: AppTheme.brandColor,
                     onRefresh: () async => _loadData(),
                     child: filteredUnits.isEmpty
-                        ? _buildEmptyState()
+                        ? BkEmptyState(
+                            icon: Icons.wc_outlined,
+                            title: 'No units found',
+                            message: _statusFilter != null
+                                ? 'No rental units match this status filter.'
+                                : 'Add standard toilets, VIP trailers, or cold rooms to display them to customers.',
+                            actionLabel: _statusFilter != null ? 'Show All Units' : 'Add Rental Unit',
+                            onAction: () {
+                              if (_statusFilter != null) {
+                                setState(() {
+                                  _statusFilter = null;
+                                });
+                              } else {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => CreateEditUnitScreen(businessId: widget.business.id),
+                                  ),
+                                );
+                              }
+                            },
+                          )
                         : ListView.builder(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             itemCount: filteredUnits.length,
@@ -252,9 +290,10 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF5D5FEF),
-        foregroundColor: Colors.white,
+        backgroundColor: AppTheme.brandColor,
+        foregroundColor: AppTheme.white,
         tooltip: 'Add Rental Unit',
+        elevation: 3,
         onPressed: () {
           Navigator.push(
             context,
@@ -271,25 +310,33 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   Widget _buildBusinessHeaderCard() {
     return Container(
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppTheme.space16),
       decoration: BoxDecoration(
-        color: const Color(0xFF161524),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: AppTheme.borderColor, width: 1.0),
+        boxShadow: AppTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.storefront, color: Color(0xFF5D5FEF), size: 24),
-              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.brandColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                ),
+                child: const Icon(Icons.storefront, color: AppTheme.brandColor, size: 22),
+              ),
+              const SizedBox(width: 10),
               Text(
                 widget.business.businessType == BusinessType.TOILET_RENTAL
-                    ? 'Toilet Rental Agency'
-                    : 'Cold Storage Provider',
+                    ? 'Sanitation & Toilet Rental Agency'
+                    : 'Cold Storage Rental Provider',
                 style: const TextStyle(
-                  color: Color(0xFF94A3B8),
+                  color: AppTheme.brandColor,
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
@@ -300,19 +347,19 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
           if (widget.business.description != null && widget.business.description!.isNotEmpty)
             Text(
               widget.business.description!,
-              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+              style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 14, height: 1.4),
             ),
           const SizedBox(height: 12),
-          const Divider(color: Colors.white10),
+          const Divider(color: AppTheme.borderColor),
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.location_on_outlined, size: 16, color: Colors.grey),
+              const Icon(Icons.location_on_outlined, size: 16, color: AppTheme.textSecondaryColor),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   widget.business.address,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
                 ),
               ),
             ],
@@ -322,263 +369,182 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const Icon(Icons.wc_outlined, size: 80, color: Colors.grey),
-            const SizedBox(height: 16),
-            const Text(
-              'No units listed yet',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Add standard toilets, VIP trailers, or cold rooms to display them to customers.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CreateEditUnitScreen(businessId: widget.business.id),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('Add Rental Unit'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildUnitCard(RentalUnit unit) {
-    // Determine status badge color
-    Color badgeColor;
-    Color textColor;
+    Color badgeBg;
+    Color badgeFg;
     String statusLabel;
 
     switch (unit.status) {
       case RentalUnitStatus.AVAILABLE:
-        badgeColor = const Color(0xFF66BB6A).withOpacity(0.15);
-        textColor = const Color(0xFF81C784);
+        badgeBg = AppTheme.brandColor.withOpacity(0.12);
+        badgeFg = AppTheme.brandColor;
         statusLabel = 'Available';
         break;
       case RentalUnitStatus.RENTED:
-        badgeColor = const Color(0xFF5D5FEF).withOpacity(0.15);
-        textColor = const Color(0xFF8C8DFF);
+        badgeBg = const Color(0xFF3B82F6).withOpacity(0.12);
+        badgeFg = const Color(0xFF2563EB);
         statusLabel = 'Rented';
         break;
       case RentalUnitStatus.UNDER_MAINTENANCE:
-        badgeColor = const Color(0xFFEF5350).withOpacity(0.15);
-        textColor = const Color(0xFFE57373);
+        badgeBg = AppTheme.accentColor.withOpacity(0.15);
+        badgeFg = const Color(0xFFD97706);
         statusLabel = 'Maintenance';
         break;
     }
 
     final String typeLabel = unit.rentalUnitType.toString().split('.').last.replaceAll('_', ' ');
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CreateEditUnitScreen(
-                businessId: widget.business.id,
-                unit: unit,
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: AppTheme.borderColor, width: 1.0),
+        boxShadow: AppTheme.cardShadow,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CreateEditUnitScreen(
+                  businessId: widget.business.id,
+                  unit: unit,
+                ),
               ),
-            ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+            );
+          },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  // Status Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: badgeColor,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      statusLabel,
-                      style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    typeLabel,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                  const Spacer(),
-                  // Photo Count Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.06),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+              // Photo Thumbnail if available
+              if (unit.displayImageUrl != null)
+                CachedImageView(
+                  imageUrl: unit.displayImageUrl,
+                  height: 120,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+
+              Padding(
+                padding: const EdgeInsets.all(AppTheme.space16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Icon(
-                          unit.images.isEmpty ? Icons.no_photography_outlined : Icons.photo_library_outlined,
-                          size: 13,
-                          color: unit.images.isEmpty ? Colors.grey : const Color(0xFF8C8DFF),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: badgeBg,
+                            borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+                          ),
+                          child: Text(
+                            statusLabel,
+                            style: TextStyle(color: badgeFg, fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 8),
                         Text(
-                          '${unit.images.length}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: unit.images.isEmpty ? Colors.grey : const Color(0xFF8C8DFF),
-                          ),
+                          typeLabel,
+                          style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 12),
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  // Unit Options Dropdown
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, color: Colors.grey),
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => CreateEditUnitScreen(
-                              businessId: widget.business.id,
-                              unit: unit,
-                            ),
-                          ),
-                        );
-                      } else if (value == 'toggle_status') {
-                        _toggleUnitStatus(unit);
-                      } else if (value == 'delete') {
-                        _deleteUnit(unit);
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit_outlined, size: 20),
-                            SizedBox(width: 8),
-                            Text('Edit / Photos'),
-                          ],
-                        ),
-                      ),
-                      if (unit.status != RentalUnitStatus.RENTED)
-                        PopupMenuItem(
-                          value: 'toggle_status',
-                          child: Row(
+                        const Spacer(),
+                        if (unit.images.isNotEmpty)
+                          Row(
                             children: [
-                              Icon(
-                                unit.status == RentalUnitStatus.AVAILABLE
-                                    ? Icons.build_outlined
-                                    : Icons.check_circle_outline,
-                                size: 20,
-                                color: const Color(0xFFFFB74D),
-                              ),
-                              const SizedBox(width: 8),
+                              const Icon(Icons.photo_library_outlined, size: 14, color: AppTheme.textSecondaryColor),
+                              const SizedBox(width: 4),
                               Text(
-                                unit.status == RentalUnitStatus.AVAILABLE
-                                    ? 'Set Maintenance'
-                                    : 'Set Available',
+                                '${unit.images.length}',
+                                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
                               ),
                             ],
                           ),
-                        ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.redAccent)),
+                        const SizedBox(width: 4),
+                        // Quick Action Popover (Toggle status / Delete)
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert, size: 20, color: AppTheme.textSecondaryColor),
+                          color: AppTheme.surfaceColor,
+                          onSelected: (value) {
+                            if (value == 'toggle_status') {
+                              _toggleUnitStatus(unit);
+                            } else if (value == 'delete') {
+                              _deleteUnit(unit);
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            PopupMenuItem(
+                              value: 'toggle_status',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    unit.status == RentalUnitStatus.AVAILABLE
+                                        ? Icons.build_circle_outlined
+                                        : Icons.check_circle_outline,
+                                    size: 18,
+                                    color: AppTheme.textPrimaryColor,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    unit.status == RentalUnitStatus.AVAILABLE
+                                        ? 'Mark for Maintenance'
+                                        : 'Mark as Available',
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_outline, size: 18, color: AppTheme.errorColor),
+                                  SizedBox(width: 8),
+                                  Text('Delete Unit', style: TextStyle(color: AppTheme.errorColor)),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Unit Thumbnail
-                  CachedImageView(
-                    imageUrl: unit.displayImageUrl,
-                    width: 72,
-                    height: 72,
-                    borderRadius: BorderRadius.circular(12),
-                    fallbackIcon: unit.rentalUnitType == RentalUnitType.STANDARD_COLD_ROOM ||
-                            unit.rentalUnitType == RentalUnitType.MOBILE_COLD_ROOM
-                        ? Icons.ac_unit
-                        : Icons.wc,
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          unit.name,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        if (unit.description != null && unit.description!.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            unit.description!,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-                          ),
-                        ],
                       ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              const Divider(color: Colors.white10),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.people_outline, size: 16, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Capacity: ${unit.capacity}',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                  const Spacer(),
-                  Text(
-                    'R ${unit.pricePerDay.toStringAsFixed(2)} / day',
-                    style: const TextStyle(
-                      color: Color(0xFFFFB74D),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                    const SizedBox(height: 10),
+                    Text(
+                      unit.name,
+                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textPrimaryColor),
                     ),
-                  ),
-                ],
+                    if (unit.description != null && unit.description!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        unit.description!,
+                        style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    const Divider(color: AppTheme.borderColor),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.people_outline, size: 16, color: AppTheme.textSecondaryColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Capacity: ${unit.capacity}',
+                          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
+                        ),
+                        const Spacer(),
+                        BkPriceDisplay(
+                          pricePerDay: unit.pricePerDay,
+                          fontSize: 16,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

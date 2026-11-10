@@ -1,5 +1,6 @@
 // ignore_for_file: slash_for_doc_comments, deprecated_member_use
 import 'package:flutter/material.dart';
+import '../../../config/app_theme.dart';
 
 /**
  * Reusable pulsing skeleton loading card for marketplace items and inventory cards.
@@ -33,7 +34,7 @@ class _SkeletonLoadingCardState extends State<SkeletonLoadingCard>
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
 
-    _animation = Tween<double>(begin: 0.25, end: 0.65).animate(
+    _animation = Tween<double>(begin: 0.4, end: 0.85).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
   }
@@ -53,10 +54,10 @@ class _SkeletonLoadingCardState extends State<SkeletonLoadingCard>
           width: widget.width,
           height: widget.height,
           decoration: BoxDecoration(
-            color: const Color(0xFF161524).withOpacity(_animation.value),
+            color: const Color(0xFF1E2433).withOpacity(_animation.value),
             borderRadius: widget.borderRadius ?? BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withOpacity(0.04),
+              color: AppTheme.borderColor.withOpacity(0.5),
             ),
           ),
         );

@@ -51,6 +51,8 @@ class Back2KasiApp extends StatelessWidget {
       title: 'Back2Kasi',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.dark,
       
       // Dynamic home screen routing depending on auth state
       home: authService.isLoading

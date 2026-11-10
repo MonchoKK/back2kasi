@@ -1,9 +1,11 @@
 // ignore_for_file: slash_for_doc_comments, use_build_context_synchronously, deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../config/app_theme.dart';
 import '../../core/auth_service.dart';
 import '../../core/business_provider.dart';
 import '../../models/business.dart';
+import '../shared/components/bk_components.dart';
 
 /**
  * Form enabling users to register a new Business profile or modify an existing one.
@@ -91,6 +93,7 @@ class _CreateEditBusinessScreenState extends State<CreateEditBusinessScreen> {
                 ? 'Business profile updated successfully'
                 : 'Business registered successfully',
           ),
+          backgroundColor: AppTheme.successColor,
         ),
       );
       Navigator.pop(context);
@@ -106,152 +109,256 @@ class _CreateEditBusinessScreenState extends State<CreateEditBusinessScreen> {
     final isLoading = context.watch<BusinessProvider>().isLoading;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(isEditMode ? 'Edit Business' : 'Register Business'),
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: BkAppBar(
+        title: isEditMode ? 'Edit Business' : 'Register Business',
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  isEditMode ? 'Update Profile' : 'Business Listing Info',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'This information is visible to clients when viewing your items.',
-                  style: TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 32),
-
-                // Name
-                TextFormField(
-                  controller: _nameController,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Business Name',
-                    prefixIcon: Icon(Icons.storefront),
-                  ),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) return 'Business name is required';
-                    if (val.trim().length < 2) return 'Name must be at least 2 characters';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Business Type Dropdown
-                DropdownButtonFormField<BusinessType>(
-                  value: _selectedType,
-                  decoration: const InputDecoration(
-                    labelText: 'Business Category',
-                    prefixIcon: Icon(Icons.category_outlined),
-                  ),
-                  dropdownColor: const Color(0xFF161524),
-                  items: const [
-                    DropdownMenuItem(
-                      value: BusinessType.TOILET_RENTAL,
-                      child: Text('Toilet Hire Services'),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 580),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header card
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceColor,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                        border: Border.all(color: AppTheme.borderColor),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.03),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                            ),
+                            child: const Icon(
+                              Icons.storefront_rounded,
+                              color: AppTheme.primaryColor,
+                              size: 26,
+                            ),
+                          ),
+                          const SizedBox(width: AppTheme.space16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isEditMode ? 'Update Business Profile' : 'Business Listing Details',
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.darkTextColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                const Text(
+                                  'This profile is presented to customers discovering your rental fleet.',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: AppTheme.secondaryTextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    DropdownMenuItem(
-                      value: BusinessType.COLD_ROOM_RENTAL,
-                      child: Text('Cold Storage Services'),
+                    const SizedBox(height: AppTheme.space20),
+
+                    // Inputs Card
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceColor,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                        border: Border.all(color: AppTheme.borderColor),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Business Name
+                          BkTextField(
+                            controller: _nameController,
+                            label: 'Business Name',
+                            hintText: 'e.g. Soshanguve Sanitation Solutions',
+                            prefixIcon: Icons.storefront,
+                            textInputAction: TextInputAction.next,
+                            validator: (val) {
+                              if (val == null || val.trim().isEmpty) return 'Business name is required';
+                              if (val.trim().length < 2) return 'Name must be at least 2 characters';
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: AppTheme.space16),
+
+                          // Business Category Dropdown
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Business Category',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.textPrimaryColor,
+                                ),
+                              ),
+                              const SizedBox(height: AppTheme.space8),
+                              DropdownButtonFormField<BusinessType>(
+                                value: _selectedType,
+                                decoration: InputDecoration(
+                                  prefixIcon: const Icon(
+                                    Icons.category_outlined,
+                                    color: AppTheme.textSecondaryColor,
+                                    size: 20,
+                                  ),
+                                  filled: true,
+                                  fillColor: AppTheme.surfaceColor,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                                    borderSide: const BorderSide(color: AppTheme.borderColor, width: 1.2),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                                    borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.8),
+                                  ),
+                                ),
+                                dropdownColor: AppTheme.surfaceColor,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  color: AppTheme.textPrimaryColor,
+                                ),
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: BusinessType.TOILET_RENTAL,
+                                    child: Text('Toilet Hire Services'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: BusinessType.COLD_ROOM_RENTAL,
+                                    child: Text('Cold Storage Services'),
+                                  ),
+                                ],
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() {
+                                      _selectedType = val;
+                                    });
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppTheme.space16),
+
+                          // Phone Number (+27 Format)
+                          BkTextField(
+                            controller: _phoneController,
+                            label: 'Business Phone Number',
+                            hintText: '+27712345678',
+                            prefixIcon: Icons.phone_outlined,
+                            keyboardType: TextInputType.phone,
+                            textInputAction: TextInputAction.next,
+                            validator: (val) {
+                              if (val == null || val.trim().isEmpty) return 'Phone number is required';
+                              if (!RegExp(r'^\+27[0-9]{9}$').hasMatch(val.trim())) {
+                                return 'Enter SA format: +27 followed by 9 digits';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: AppTheme.space16),
+
+                          // Operational Address
+                          BkTextField(
+                            controller: _addressController,
+                            label: 'Operational Address / Location',
+                            hintText: 'e.g. Block BB, Soshanguve',
+                            prefixIcon: Icons.location_on_outlined,
+                            textInputAction: TextInputAction.next,
+                            validator: (val) =>
+                                val == null || val.trim().isEmpty ? 'Address is required' : null,
+                          ),
+                          const SizedBox(height: AppTheme.space16),
+
+                          // Description
+                          BkTextField(
+                            controller: _descController,
+                            label: 'Description (Optional)',
+                            hintText: 'Describe your service offerings, delivery radius, and background...',
+                            prefixIcon: Icons.description_outlined,
+                            maxLines: 3,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _save(),
+                          ),
+                          const SizedBox(height: AppTheme.space24),
+
+                          // Error Message Banner
+                          if (_errorMessage != null) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: AppTheme.errorColor.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                                border: Border.all(color: AppTheme.errorColor.withOpacity(0.25)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.error_outline, size: 18, color: AppTheme.errorColor),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _errorMessage!,
+                                      style: const TextStyle(
+                                        color: AppTheme.errorColor,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: AppTheme.space16),
+                          ],
+
+                          // Save Action Button
+                          BkPrimaryButton(
+                            label: isEditMode ? 'Save Changes' : 'Register Profile',
+                            isLoading: isLoading,
+                            onPressed: _save,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() {
-                        _selectedType = val;
-                      });
-                    }
-                  },
                 ),
-                const SizedBox(height: 20),
-
-                // Phone (+27 Format)
-                TextFormField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Business Phone Number',
-                    prefixIcon: Icon(Icons.phone_outlined),
-                    hintText: '+27712345678',
-                  ),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) return 'Phone number is required';
-                    if (!RegExp(r'^\+27[0-9]{9}$').hasMatch(val.trim())) {
-                      return 'Enter SA format: +27 followed by 9 digits';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Address
-                TextFormField(
-                  controller: _addressController,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Operational Address',
-                    prefixIcon: Icon(Icons.location_on_outlined),
-                  ),
-                  validator: (val) =>
-                      val == null || val.trim().isEmpty ? 'Address is required' : null,
-                ),
-                const SizedBox(height: 20),
-
-                // Description
-                TextFormField(
-                  controller: _descController,
-                  maxLines: 3,
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) => _save(),
-                  decoration: const InputDecoration(
-                    labelText: 'Description (Optional)',
-                    prefixIcon: Icon(Icons.description_outlined),
-                    alignLabelWithHint: true,
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Error Message Banner
-                if (_errorMessage != null) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
-                    ),
-                    child: Text(
-                      _errorMessage!,
-                      style: const TextStyle(color: Colors.redAccent, fontSize: 14),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
-
-                // Save Button
-                ElevatedButton(
-                  onPressed: isLoading ? null : _save,
-                  child: isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation(Colors.white),
-                          ),
-                        )
-                      : Text(isEditMode ? 'Save Changes' : 'Register Profile'),
-                ),
-              ],
+              ),
             ),
           ),
         ),
