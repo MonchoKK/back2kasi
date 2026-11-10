@@ -17,3 +17,4 @@ ALTER TABLE rental_units ADD COLUMN price REAL DEFAULT 0.0;
 -- Backfill price from legacy price_per_day
 UPDATE rental_units SET price = price_per_day WHERE price IS NULL OR price = 0.0;
 UPDATE rental_units SET price_unit = 'per day' WHERE price_unit IS NULL OR price_unit = '';
+

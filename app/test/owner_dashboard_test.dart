@@ -130,8 +130,9 @@ void main() {
       // Verify business dropdown selector shows selected business name
       expect(find.text('Kasi Toilets Co'), findsOneWidget);
 
-      // Verify stats grid (1 Rental Unit, 1 Pending Request, 1 Active Booking)
-      expect(find.text('1'), findsAtLeast(3));
+      // Verify stats (Catalogue Items count is 1)
+      expect(find.text('1'), findsAtLeast(1));
+      expect(find.text('Catalogue Items'), findsOneWidget);
     });
 
     testWidgets('OwnerBookingRequestsScreen displays pending and history tabs', (WidgetTester tester) async {

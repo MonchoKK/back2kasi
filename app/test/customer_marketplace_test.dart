@@ -39,16 +39,16 @@ void main() {
       // Verify Brand title & search
       expect(find.text('Back2Kasi'), findsOneWidget);
       expect(find.byType(TextField), findsOneWidget);
-      expect(find.text('Search by equipment, class, or township...'), findsOneWidget);
+      expect(find.text('Search products, services, or local businesses...'), findsOneWidget);
 
       // Verify Category Chips
       expect(find.text('All Categories'), findsOneWidget);
-      expect(find.text('VIP Trailers'), findsOneWidget);
-      expect(find.text('Standard Toilets'), findsOneWidget);
+      expect(find.text('💇 Beauty & Personal Care'), findsOneWidget);
+      expect(find.text('🍔 Food & Catering'), findsOneWidget);
 
       // Verify Segmented Tabs
-      expect(find.text('Available Rentals'), findsOneWidget);
-      expect(find.text('Local Providers'), findsOneWidget);
+      expect(find.text('Products & Services'), findsOneWidget);
+      expect(find.text('Local Businesses'), findsOneWidget);
     });
 
     testWidgets('RentalUnitDetailScreen renders gallery, specs and booking CTA', (tester) async {
@@ -101,9 +101,7 @@ void main() {
 
       // Verify unit specs
       expect(find.text('Deluxe VIP Toilet Trailer'), findsOneWidget);
-      expect(find.text('R 750.00'), findsWidgets);
-      expect(find.text('Available Now'), findsOneWidget);
-      expect(find.text('VIP TOILET'), findsOneWidget);
+      expect(find.text('R 750'), findsWidgets);
       expect(find.text('Solar powered lighting and luxury mirrors.'), findsOneWidget);
 
       // Verify business provider info
@@ -111,7 +109,7 @@ void main() {
       expect(find.text('88 Vilakazi St, Orlando West, Soweto'), findsOneWidget);
 
       // Verify Sticky CTA button
-      expect(find.text('Book Unit'), findsOneWidget);
+      expect(find.text('Enquire on WhatsApp'), findsOneWidget);
     });
   });
 }

@@ -77,3 +77,4 @@ UPDATE rental_units SET price = price_per_day WHERE price = 0.0 OR price IS NULL
 - **`views/rental_unit/create_edit_unit_screen.dart`:** Product/Service chip selector, "Price on Request" switch, unit price fields, and Cloudflare R2 photos.
 - **`views/business/dashboard_screen.dart`:** Multi-business switcher with emojis and category tags, live catalogue preview, and stats.
 - **`views/business/business_detail_screen.dart`:** Verified badge, category header, and Product/Service catalogue item cards.
+

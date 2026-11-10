@@ -129,3 +129,4 @@ enum BusinessCategory {
     }
   }
 }
+

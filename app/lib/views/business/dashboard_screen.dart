@@ -169,30 +169,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   border: Border.all(color: AppTheme.borderColor, width: 1.0),
                 ),
                 child: DropdownButtonHideUnderline(
-                  child: DropdownButton<Business>(
-                    value: currentBusiness,
+                  child: DropdownButton<int>(
+                    value: currentBusiness.id,
                     isExpanded: true,
                     dropdownColor: AppTheme.surfaceColor,
                     icon: const Icon(Icons.keyboard_arrow_down, color: AppTheme.brandColor),
                     items: myBusinesses.map((Business b) {
-                      return DropdownMenuItem<Business>(
-                        value: b,
+                      return DropdownMenuItem<int>(
+                        value: b.id,
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(b.category.emoji, style: const TextStyle(fontSize: 16)),
                             const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                b.name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                  color: AppTheme.textPrimaryColor,
-                                ),
-                                overflow: TextOverflow.ellipsis,
+                            Text(
+                              b.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                                color: AppTheme.textPrimaryColor,
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
@@ -212,10 +210,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       );
                     }).toList(),
-                    onChanged: (Business? value) {
-                      if (value != null) {
+                    onChanged: (int? selectedId) {
+                      if (selectedId != null) {
+                        final found = myBusinesses.firstWhere(
+                          (b) => b.id == selectedId,
+                          orElse: () => myBusinesses.first,
+                        );
                         setState(() {
-                          _selectedBusiness = value;
+                          _selectedBusiness = found;
                         });
                         _fetchUnitsForSelected();
                       }
