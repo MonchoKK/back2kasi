@@ -1,7 +1,19 @@
 import { Hono } from 'hono';
-import { Env, AuthUser, BusinessResponse, BusinessRow, BusinessType } from '../types';
+import {
+  Env,
+  AuthUser,
+  BusinessResponse,
+  BusinessRow,
+  BusinessType,
+  BusinessContactResponse,
+} from '../types';
 import { requireAuth } from '../middleware/auth';
 import { ResourceNotFoundError, UnauthorizedError, ValidationError } from '../lib/errors';
+import {
+  toLocalSaPhone,
+  toInternationalSaPhone,
+  validateAndNormalizeSaLocalPhone,
+} from '../lib/phone';
 
 export const businessRoutes = new Hono<{
   Bindings: Env;
@@ -16,9 +28,12 @@ function toBusinessResponse(row: BusinessRow): BusinessResponse {
     name: row.name,
     description: row.description,
     address: row.address,
-    phoneNumber: row.phone_number,
+    phoneNumber: toLocalSaPhone(row.phone_number) || row.phone_number,
     businessType: row.business_type,
     ownerId: row.owner_id,
+    whatsappNumber: toLocalSaPhone(row.whatsapp_number),
+    whatsappEnabled: row.whatsapp_enabled === 1,
+    whatsappMessage: row.whatsapp_message ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -67,6 +82,116 @@ businessRoutes.get('/:id', async (c) => {
   return c.json(toBusinessResponse(business), 200);
 });
 
+// GET /api/v1/businesses/:id/contact-settings - Owner retrieves their contact settings
+businessRoutes.get('/:id/contact-settings', requireAuth, async (c) => {
+  const currentUser = c.get('user');
+  const paramId = c.req.param('id') || '';
+  const id = parseInt(paramId, 10);
+  if (isNaN(id)) {
+    throw new ResourceNotFoundError('Business not found with id: ' + paramId);
+  }
+
+  const business = await c.env.DB.prepare('SELECT * FROM businesses WHERE id = ?')
+    .bind(id)
+    .first<BusinessRow>();
+
+  if (!business) {
+    throw new ResourceNotFoundError(`Business not found with id: ${id}`);
+  }
+
+  if (business.owner_id !== currentUser.id) {
+    throw new UnauthorizedError('You do not have permission to view contact settings for this business');
+  }
+
+  const contact: BusinessContactResponse = {
+    businessId: business.id,
+    businessName: business.name,
+    phoneNumber: toLocalSaPhone(business.phone_number) || business.phone_number,
+    whatsappNumber: toLocalSaPhone(business.whatsapp_number),
+    whatsappEnabled: business.whatsapp_enabled === 1,
+    whatsappMessage: business.whatsapp_message ?? null,
+  };
+
+  return c.json(contact, 200);
+});
+
+// PUT /api/v1/businesses/:id/contact-settings - Owner updates WhatsApp number & availability
+businessRoutes.put('/:id/contact-settings', requireAuth, async (c) => {
+  const currentUser = c.get('user');
+  const paramId = c.req.param('id') || '';
+  const id = parseInt(paramId, 10);
+  if (isNaN(id)) {
+    throw new ResourceNotFoundError('Business not found with id: ' + paramId);
+  }
+
+  const existing = await c.env.DB.prepare('SELECT * FROM businesses WHERE id = ?')
+    .bind(id)
+    .first<BusinessRow>();
+
+  if (!existing) {
+    throw new ResourceNotFoundError(`Business not found with id: ${id}`);
+  }
+
+  if (existing.owner_id !== currentUser.id) {
+    throw new UnauthorizedError('You do not have permission to access this business');
+  }
+
+  let body: any;
+  try {
+    body = await c.req.json();
+  } catch {
+    throw new ValidationError({ body: 'Malformed JSON request body' }, 'Malformed JSON request body');
+  }
+
+  const { whatsappNumber, whatsappEnabled, whatsappMessage } = body || {};
+  const fieldErrors: Record<string, string> = {};
+
+  let normalizedWhatsappNumber: string | null = null;
+  if (whatsappNumber !== undefined && whatsappNumber !== null && String(whatsappNumber).trim() !== '') {
+    const { normalized, error } = validateAndNormalizeSaLocalPhone(String(whatsappNumber));
+    if (error) {
+      fieldErrors.whatsappNumber = error;
+    } else {
+      normalizedWhatsappNumber = normalized;
+    }
+  }
+
+  if (whatsappEnabled !== undefined && typeof whatsappEnabled !== 'boolean') {
+    fieldErrors.whatsappEnabled = 'whatsappEnabled must be a boolean';
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    throw new ValidationError(fieldErrors);
+  }
+
+  const isEnabled = whatsappEnabled === true ? 1 : 0;
+  const message = whatsappMessage !== undefined ? (whatsappMessage?.trim() || null) : (existing.whatsapp_message ?? null);
+  const now = new Date().toISOString();
+
+  await c.env.DB.prepare(
+    `UPDATE businesses
+     SET whatsapp_number = ?, whatsapp_enabled = ?, whatsapp_message = ?, updated_at = ?
+     WHERE id = ?`
+  )
+    .bind(normalizedWhatsappNumber, isEnabled, message, now, id)
+    .run();
+
+  const updated = await c.env.DB.prepare('SELECT * FROM businesses WHERE id = ?')
+    .bind(id)
+    .first<BusinessRow>();
+
+  const contact: BusinessContactResponse = {
+    businessId: updated!.id,
+    businessName: updated!.name,
+    phoneNumber: toLocalSaPhone(updated!.phone_number) || updated!.phone_number,
+    whatsappNumber: toLocalSaPhone(updated!.whatsapp_number),
+    whatsappEnabled: updated!.whatsapp_enabled === 1,
+    whatsappMessage: updated!.whatsapp_message ?? null,
+  };
+
+  return c.json(contact, 200);
+});
+
 // POST /api/v1/businesses - Create a new business (JWT required)
 businessRoutes.post('/', requireAuth, async (c) => {
   const currentUser = c.get('user');
@@ -77,7 +202,16 @@ businessRoutes.post('/', requireAuth, async (c) => {
     throw new ValidationError({ body: 'Malformed JSON request body' }, 'Malformed JSON request body');
   }
 
-  const { name, description, address, phoneNumber, businessType } = body || {};
+  const {
+    name,
+    description,
+    address,
+    phoneNumber,
+    businessType,
+    whatsappNumber,
+    whatsappEnabled,
+    whatsappMessage,
+  } = body || {};
   const fieldErrors: Record<string, string> = {};
 
   if (!name || typeof name !== 'string' || !name.trim()) {
@@ -86,30 +220,57 @@ businessRoutes.post('/', requireAuth, async (c) => {
   if (!address || typeof address !== 'string' || !address.trim()) {
     fieldErrors.address = 'Address is required';
   }
+  let normalizedPhone: string = '';
   if (!phoneNumber || typeof phoneNumber !== 'string' || !phoneNumber.trim()) {
     fieldErrors.phoneNumber = 'Phone number is required';
+  } else {
+    const { normalized, error } = validateAndNormalizeSaLocalPhone(phoneNumber);
+    if (error) {
+      fieldErrors.phoneNumber = error;
+    } else {
+      normalizedPhone = normalized!;
+    }
   }
   if (!businessType || !VALID_BUSINESS_TYPES.includes(businessType)) {
     fieldErrors.businessType = 'Business type must be TOILET_RENTAL or COLD_ROOM_RENTAL';
+  }
+
+  let normalizedWhatsappNumber: string | null = null;
+  if (whatsappNumber !== undefined && whatsappNumber !== null && String(whatsappNumber).trim() !== '') {
+    const { normalized, error } = validateAndNormalizeSaLocalPhone(String(whatsappNumber));
+    if (error) {
+      fieldErrors.whatsappNumber = error;
+    } else {
+      normalizedWhatsappNumber = normalized;
+    }
+  }
+
+  if (whatsappEnabled !== undefined && typeof whatsappEnabled !== 'boolean') {
+    fieldErrors.whatsappEnabled = 'whatsappEnabled must be a boolean';
   }
 
   if (Object.keys(fieldErrors).length > 0) {
     throw new ValidationError(fieldErrors);
   }
 
+  const isEnabled = whatsappEnabled === true ? 1 : 0;
+  const message = whatsappMessage?.trim() || null;
   const now = new Date().toISOString();
 
   const insertResult = await c.env.DB.prepare(
-    `INSERT INTO businesses (name, description, address, phone_number, business_type, owner_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO businesses (name, description, address, phone_number, business_type, owner_id, whatsapp_number, whatsapp_enabled, whatsapp_message, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
     .bind(
       name.trim(),
       description?.trim() || null,
       address.trim(),
-      phoneNumber.trim(),
+      normalizedPhone,
       businessType,
       currentUser.id,
+      normalizedWhatsappNumber,
+      isEnabled,
+      message,
       now,
       now
     )
@@ -155,7 +316,16 @@ businessRoutes.put('/:id', requireAuth, async (c) => {
     throw new ValidationError({ body: 'Malformed JSON request body' }, 'Malformed JSON request body');
   }
 
-  const { name, description, address, phoneNumber, businessType } = body || {};
+  const {
+    name,
+    description,
+    address,
+    phoneNumber,
+    businessType,
+    whatsappNumber,
+    whatsappEnabled,
+    whatsappMessage,
+  } = body || {};
   const fieldErrors: Record<string, string> = {};
 
   if (!name || typeof name !== 'string' || !name.trim()) {
@@ -164,12 +334,43 @@ businessRoutes.put('/:id', requireAuth, async (c) => {
   if (!address || typeof address !== 'string' || !address.trim()) {
     fieldErrors.address = 'Address is required';
   }
+  let normalizedPhone = existing.phone_number;
   if (!phoneNumber || typeof phoneNumber !== 'string' || !phoneNumber.trim()) {
     fieldErrors.phoneNumber = 'Phone number is required';
+  } else {
+    const { normalized, error } = validateAndNormalizeSaLocalPhone(phoneNumber);
+    if (error) {
+      fieldErrors.phoneNumber = error;
+    } else {
+      normalizedPhone = normalized!;
+    }
   }
   if (!businessType || !VALID_BUSINESS_TYPES.includes(businessType)) {
     fieldErrors.businessType = 'Business type must be TOILET_RENTAL or COLD_ROOM_RENTAL';
   }
+
+  let normalizedWhatsappNumber = existing.whatsapp_number ?? null;
+  if (whatsappNumber !== undefined) {
+    if (whatsappNumber === null || String(whatsappNumber).trim() === '') {
+      normalizedWhatsappNumber = null;
+    } else {
+      const { normalized, error } = validateAndNormalizeSaLocalPhone(String(whatsappNumber));
+      if (error) {
+        fieldErrors.whatsappNumber = error;
+      } else {
+        normalizedWhatsappNumber = normalized;
+      }
+    }
+  }
+
+  const isEnabled =
+    whatsappEnabled !== undefined
+      ? (whatsappEnabled === true ? 1 : 0)
+      : (existing.whatsapp_enabled ?? 0);
+  const message =
+    whatsappMessage !== undefined
+      ? (whatsappMessage?.trim() || null)
+      : (existing.whatsapp_message ?? null);
 
   if (Object.keys(fieldErrors).length > 0) {
     throw new ValidationError(fieldErrors);
@@ -179,15 +380,18 @@ businessRoutes.put('/:id', requireAuth, async (c) => {
 
   await c.env.DB.prepare(
     `UPDATE businesses
-     SET name = ?, description = ?, address = ?, phone_number = ?, business_type = ?, updated_at = ?
+     SET name = ?, description = ?, address = ?, phone_number = ?, business_type = ?, whatsapp_number = ?, whatsapp_enabled = ?, whatsapp_message = ?, updated_at = ?
      WHERE id = ?`
   )
     .bind(
       name.trim(),
       description?.trim() || null,
       address.trim(),
-      phoneNumber.trim(),
+      normalizedPhone,
       businessType,
+      normalizedWhatsappNumber,
+      isEnabled,
+      message,
       now,
       id
     )

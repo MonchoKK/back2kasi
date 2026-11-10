@@ -99,6 +99,9 @@ class BusinessProvider extends ChangeNotifier {
     required String address,
     required String phoneNumber,
     required BusinessType type,
+    String? whatsappNumber,
+    bool whatsappEnabled = false,
+    String? whatsappMessage,
     required String token,
   }) async {
     _setLoading(true);
@@ -117,6 +120,9 @@ class BusinessProvider extends ChangeNotifier {
           'address': address,
           'phoneNumber': phoneNumber,
           'businessType': type.toString().split('.').last,
+          'whatsappNumber': whatsappNumber,
+          'whatsappEnabled': whatsappEnabled,
+          'whatsappMessage': whatsappMessage,
         }),
       );
 
@@ -154,25 +160,40 @@ class BusinessProvider extends ChangeNotifier {
     required String address,
     required String phoneNumber,
     required BusinessType type,
+    String? whatsappNumber,
+    bool? whatsappEnabled,
+    String? whatsappMessage,
     required String token,
   }) async {
     _setLoading(true);
     _errorMessage = null;
 
     try {
+      final Map<String, dynamic> payload = {
+        'name': name,
+        'description': description,
+        'address': address,
+        'phoneNumber': phoneNumber,
+        'businessType': type.toString().split('.').last,
+      };
+
+      if (whatsappNumber != null) {
+        payload['whatsappNumber'] = whatsappNumber;
+      }
+      if (whatsappEnabled != null) {
+        payload['whatsappEnabled'] = whatsappEnabled;
+      }
+      if (whatsappMessage != null) {
+        payload['whatsappMessage'] = whatsappMessage;
+      }
+
       final response = await http.put(
         Uri.parse('${ApiConfig.businesses}/$id'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({
-          'name': name,
-          'description': description,
-          'address': address,
-          'phoneNumber': phoneNumber,
-          'businessType': type.toString().split('.').last,
-        }),
+        body: jsonEncode(payload),
       );
 
       final responseBody = jsonDecode(response.body);
@@ -199,6 +220,91 @@ class BusinessProvider extends ChangeNotifier {
       rethrow;
     } finally {
       _setLoading(false);
+    }
+  }
+
+  /**
+   * Update contact & WhatsApp availability settings for a business (Owner only).
+   */
+  Future<BusinessContact> updateBusinessContact(
+    int id, {
+    String? whatsappNumber,
+    required bool whatsappEnabled,
+    String? whatsappMessage,
+    required String token,
+  }) async {
+    _setLoading(true);
+    _errorMessage = null;
+
+    try {
+      final response = await http.put(
+        Uri.parse(ApiConfig.businessContact(id)),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'whatsappNumber': whatsappNumber,
+          'whatsappEnabled': whatsappEnabled,
+          'whatsappMessage': whatsappMessage,
+        }),
+      );
+
+      final responseBody = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        final contact = BusinessContact.fromJson(responseBody);
+        // Synchronize in-memory business list
+        final index = _myBusinesses.indexWhere((element) => element.id == id);
+        if (index != -1) {
+          _myBusinesses[index] = _myBusinesses[index].copyWith(
+            whatsappNumber: contact.whatsappNumber,
+            whatsappEnabled: contact.whatsappEnabled,
+            whatsappMessage: contact.whatsappMessage,
+          );
+        }
+        return contact;
+      } else {
+        if (responseBody['fieldErrors'] != null) {
+          final Map<String, dynamic> errors = responseBody['fieldErrors'];
+          _errorMessage = errors.values.join(', ');
+        } else {
+          _errorMessage = responseBody['message'] ?? 'Failed to update contact settings';
+        }
+        throw Exception(_errorMessage);
+      }
+    } catch (e) {
+      if (_errorMessage == null) {
+        _errorMessage = 'Connection error: unable to update contact';
+      }
+      rethrow;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /**
+   * Fetch public contact information for a business.
+   */
+  Future<BusinessContact> getBusinessContact(int id, {String? token}) async {
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+    };
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    final response = await http.get(
+      Uri.parse(ApiConfig.businessContact(id)),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      final responseBody = jsonDecode(response.body);
+      return BusinessContact.fromJson(responseBody);
+    } else {
+      final responseBody = jsonDecode(response.body);
+      throw Exception(responseBody['message'] ?? 'Failed to fetch business contact');
     }
   }
 

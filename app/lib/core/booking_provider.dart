@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/booking.dart';
+import '../models/booking_contact.dart';
 
 /**
  * State provider managing the booking lifecycle.
@@ -204,6 +205,29 @@ class BookingProvider extends ChangeNotifier {
       rethrow;
     } finally {
       _setLoading(false);
+    }
+  }
+
+  /**
+   * Fetch booking-gated contact details for an accepted booking.
+   * Calls GET /api/v1/bookings/{id}/contact
+   */
+  Future<BookingContact> fetchBookingContact(int bookingId, String token) async {
+    final response = await _client.get(
+      Uri.parse(ApiConfig.bookingContact(bookingId)),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      return BookingContact.fromJson(json);
+    } else {
+      final responseBody = jsonDecode(response.body);
+      final msg = responseBody['message'] ?? 'Contact details are only available for accepted bookings.';
+      throw Exception(msg);
     }
   }
 }

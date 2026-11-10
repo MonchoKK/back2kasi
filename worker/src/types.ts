@@ -57,6 +57,9 @@ export interface BusinessRow {
   phone_number: string;
   business_type: BusinessType;
   owner_id: number;
+  whatsapp_number?: string | null;
+  whatsapp_enabled?: number;
+  whatsapp_message?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -115,8 +118,38 @@ export interface BusinessResponse {
   phoneNumber: string;
   businessType: BusinessType;
   ownerId: number;
+  whatsappNumber?: string | null;
+  whatsappEnabled?: boolean;
+  whatsappMessage?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface BookingContactResponse {
+  bookingId: number;
+  bookingStatus: string;
+  role: 'BUSINESS' | 'CUSTOMER';
+  contactName: string;
+  phoneNumber: string;
+  whatsappNumber: string | null;
+  whatsappInternationalNumber: string | null;
+  whatsappEnabled: boolean;
+  prefilledMessage: string;
+}
+
+export interface BusinessContactResponse {
+  businessId: number;
+  businessName: string;
+  phoneNumber: string;
+  whatsappNumber: string | null;
+  whatsappEnabled: boolean;
+  whatsappMessage: string | null;
+}
+
+export interface UpdateBusinessContactRequest {
+  whatsappNumber?: string | null;
+  whatsappEnabled: boolean;
+  whatsappMessage?: string | null;
 }
 
 export interface RentalUnitImageResponse {

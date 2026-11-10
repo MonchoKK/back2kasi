@@ -173,11 +173,17 @@ class _CustomerBusinessDetailScreenState extends State<CustomerBusinessDetailScr
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.phone_outlined, size: 16, color: AppTheme.textSecondaryColor),
+              Icon(Icons.lock_clock_outlined, size: 14, color: AppTheme.emerald.withOpacity(0.8)),
               const SizedBox(width: 6),
-              Text(
-                widget.business.phoneNumber,
-                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
+              const Expanded(
+                child: Text(
+                  'Verified business • Direct contact unlocked upon booking acceptance',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.textSecondaryColor,
+                  ),
+                ),
               ),
             ],
           ),

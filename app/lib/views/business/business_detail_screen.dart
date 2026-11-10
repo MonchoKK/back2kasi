@@ -7,6 +7,7 @@ import '../../core/rental_unit_provider.dart';
 import '../../models/business.dart';
 import '../../models/rental_unit.dart';
 import '../rental_unit/create_edit_unit_screen.dart';
+import 'create_edit_business_screen.dart';
 import '../shared/components/bk_components.dart';
 import '../shared/widgets/cached_image_view.dart';
 
@@ -172,7 +173,20 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
         title: widget.business.name,
         actions: [
           IconButton(
+            icon: const Icon(Icons.edit_outlined, color: AppTheme.textSecondaryColor),
+            tooltip: 'Edit Business Profile',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CreateEditBusinessScreen(business: widget.business),
+                ),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh, color: AppTheme.textSecondaryColor),
+            tooltip: 'Refresh Units',
             onPressed: _loadData,
           ),
         ],
@@ -360,6 +374,51 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                 child: Text(
                   widget.business.address,
                   style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.phone_outlined, size: 16, color: AppTheme.textSecondaryColor),
+              const SizedBox(width: 6),
+              Text(
+                widget.business.phoneNumber,
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
+              ),
+              const SizedBox(width: 14),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: widget.business.whatsappEnabled
+                      ? AppTheme.brandColor.withOpacity(0.12)
+                      : AppTheme.darkColor.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+                  border: Border.all(
+                    color: widget.business.whatsappEnabled
+                        ? AppTheme.brandColor.withOpacity(0.3)
+                        : AppTheme.borderColor,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      widget.business.whatsappEnabled ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded,
+                      size: 11,
+                      color: widget.business.whatsappEnabled ? AppTheme.brandColor : AppTheme.textSecondaryColor,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      widget.business.whatsappEnabled ? 'WhatsApp Active' : 'WhatsApp Disabled',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                        color: widget.business.whatsappEnabled ? AppTheme.brandColor : AppTheme.textSecondaryColor,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

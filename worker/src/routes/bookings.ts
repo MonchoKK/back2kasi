@@ -3,12 +3,14 @@ import {
   Env,
   AuthUser,
   BookingResponse,
+  BookingContactResponse,
   BookingStatus,
   RentalUnitRow,
   BusinessRow,
 } from '../types';
 import { requireAuth } from '../middleware/auth';
 import { ConflictError, ResourceNotFoundError, UnauthorizedError, ValidationError } from '../lib/errors';
+import { toLocalSaPhone, toInternationalSaPhone } from '../lib/phone';
 
 export const bookingRoutes = new Hono<{
   Bindings: Env;
@@ -158,6 +160,130 @@ bookingRoutes.get('/:id', async (c) => {
   }
 
   return c.json(toBookingResponse(booking), 200);
+});
+
+interface BookingContactRow {
+  booking_id: number;
+  booking_status: string;
+  rental_unit_id: number;
+  unit_name: string;
+  customer_id: number;
+  start_date: string;
+  end_date: string;
+  total_price: number;
+  business_id: number;
+  business_name: string;
+  business_phone: string;
+  business_whatsapp: string | null;
+  business_whatsapp_enabled: number;
+  business_owner_id: number;
+  customer_first_name: string;
+  customer_last_name: string;
+  customer_phone: string;
+}
+
+// GET /api/v1/bookings/:id/contact - Booking-gated direct contact (Accepted bookings only)
+bookingRoutes.get('/:id/contact', async (c) => {
+  const currentUser = c.get('user');
+  const paramId = c.req.param('id');
+  const id = parseInt(paramId, 10);
+  if (isNaN(id)) {
+    throw new ResourceNotFoundError('Booking not found with id: ' + paramId);
+  }
+
+  const row = await c.env.DB.prepare(
+    `SELECT 
+       b.id AS booking_id,
+       b.status AS booking_status,
+       b.rental_unit_id,
+       b.customer_id,
+       b.start_date,
+       b.end_date,
+       b.total_price,
+       ru.name AS unit_name,
+       biz.id AS business_id,
+       biz.name AS business_name,
+       biz.phone_number AS business_phone,
+       biz.whatsapp_number AS business_whatsapp,
+       biz.whatsapp_enabled AS business_whatsapp_enabled,
+       biz.owner_id AS business_owner_id,
+       u.first_name AS customer_first_name,
+       u.last_name AS customer_last_name,
+       u.phone_number AS customer_phone
+     FROM bookings b
+     JOIN rental_units ru ON b.rental_unit_id = ru.id
+     JOIN businesses biz ON ru.business_id = biz.id
+     JOIN users u ON b.customer_id = u.id
+     WHERE b.id = ?`
+  )
+    .bind(id)
+    .first<BookingContactRow>();
+
+  if (!row) {
+    throw new ResourceNotFoundError(`Booking not found with id: ${id}`);
+  }
+
+  // 1. Verify caller authorization: customer or business owner
+  const isCustomer = row.customer_id === currentUser.id;
+  const isOwner = row.business_owner_id === currentUser.id;
+
+  if (!isCustomer && !isOwner) {
+    throw new UnauthorizedError('You do not have permission to view contact details for this booking');
+  }
+
+  // 2. Strict booking-gate: Contact is ONLY permitted while status is CONFIRMED / ACCEPTED
+  const isAccepted = row.booking_status === 'CONFIRMED' || row.booking_status === 'ACCEPTED';
+  if (!isAccepted) {
+    return c.json(
+      {
+        message: 'Contact details are only available for accepted bookings.',
+        status: row.booking_status,
+      },
+      403
+    );
+  }
+
+  // 3. Bidirectional contact payloads
+  if (isCustomer) {
+    // Customer requesting business contact details
+    const hasWhatsapp = row.business_whatsapp_enabled === 1 && !!row.business_whatsapp;
+    const localPhone = toLocalSaPhone(row.business_phone) || row.business_phone;
+    const localWhatsapp = hasWhatsapp ? toLocalSaPhone(row.business_whatsapp) : null;
+    const intlWhatsapp = hasWhatsapp ? toInternationalSaPhone(row.business_whatsapp) : null;
+    const prefilled = `Hi! I have an accepted booking (#${row.booking_id}) with ${row.business_name} on Back2Kasi for ${row.unit_name} (${row.start_date} to ${row.end_date}). I'd like to coordinate details regarding my booking.`;
+
+    const response: BookingContactResponse = {
+      bookingId: row.booking_id,
+      bookingStatus: row.booking_status,
+      role: 'BUSINESS',
+      contactName: row.business_name,
+      phoneNumber: localPhone,
+      whatsappNumber: localWhatsapp,
+      whatsappInternationalNumber: intlWhatsapp,
+      whatsappEnabled: hasWhatsapp,
+      prefilledMessage: prefilled,
+    };
+    return c.json(response, 200);
+  } else {
+    // Business owner requesting customer contact details
+    const customerFullName = `${row.customer_first_name} ${row.customer_last_name}`.trim();
+    const localPhone = toLocalSaPhone(row.customer_phone) || row.customer_phone;
+    const intlWhatsapp = toInternationalSaPhone(row.customer_phone);
+    const prefilled = `Hi ${row.customer_first_name}! This is ${row.business_name} regarding your accepted Back2Kasi booking (#${row.booking_id}) for ${row.unit_name}. Reaching out to coordinate delivery and setup.`;
+
+    const response: BookingContactResponse = {
+      bookingId: row.booking_id,
+      bookingStatus: row.booking_status,
+      role: 'CUSTOMER',
+      contactName: customerFullName,
+      phoneNumber: localPhone,
+      whatsappNumber: localPhone,
+      whatsappInternationalNumber: intlWhatsapp,
+      whatsappEnabled: true,
+      prefilledMessage: prefilled,
+    };
+    return c.json(response, 200);
+  }
 });
 
 // POST /api/v1/bookings - Create new booking

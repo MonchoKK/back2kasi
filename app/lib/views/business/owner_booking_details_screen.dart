@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../core/auth_service.dart';
 import '../../core/booking_provider.dart';
+import '../../core/contact_helper.dart';
 import '../../models/booking.dart';
+import '../../models/booking_contact.dart';
 import '../shared/components/bk_components.dart';
 
 /**
@@ -13,7 +15,8 @@ import '../shared/components/bk_components.dart';
  * <p>Emerald Light Marketplace design:
  * - Clean white information surfaces
  * - Clear pricing breakdown with duration calculations
- * - One-tap Approve, Decline, and Complete actions.</p>
+ * - One-tap Approve, Decline, and Complete actions
+ * - Unlocked WhatsApp & phone contact with the client once accepted.</p>
  */
 class OwnerBookingDetailsScreen extends StatefulWidget {
   final Booking booking;
@@ -27,11 +30,50 @@ class OwnerBookingDetailsScreen extends StatefulWidget {
 class _OwnerBookingDetailsScreenState extends State<OwnerBookingDetailsScreen> {
   bool _isProcessing = false;
   late Booking _currentBooking;
+  BookingContact? _bookingContact;
+  bool _isLoadingContact = false;
+  String? _contactError;
 
   @override
   void initState() {
     super.initState();
     _currentBooking = widget.booking;
+    if (_currentBooking.status == BookingStatus.CONFIRMED) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadContact();
+      });
+    }
+  }
+
+  Future<void> _loadContact() async {
+    final token = context.read<AuthService>().token;
+    if (token == null) return;
+
+    setState(() {
+      _isLoadingContact = true;
+      _contactError = null;
+    });
+
+    try {
+      final contact = await context.read<BookingProvider>().fetchBookingContact(_currentBooking.id, token);
+      if (mounted) {
+        setState(() {
+          _bookingContact = contact;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _contactError = e.toString().replaceAll('Exception: ', '');
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingContact = false;
+        });
+      }
+    }
   }
 
   Future<void> _updateStatus(BookingStatus targetStatus) async {
@@ -84,6 +126,10 @@ class _OwnerBookingDetailsScreenState extends State<OwnerBookingDetailsScreen> {
         setState(() {
           _currentBooking = updated;
         });
+
+        if (_currentBooking.status == BookingStatus.CONFIRMED) {
+          _loadContact();
+        }
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -193,7 +239,7 @@ class _OwnerBookingDetailsScreenState extends State<OwnerBookingDetailsScreen> {
             ),
             const SizedBox(height: AppTheme.space20),
 
-            // Financial Summary
+            // Pricing Summary Card
             Container(
               padding: const EdgeInsets.all(AppTheme.space20),
               decoration: BoxDecoration(
@@ -238,6 +284,10 @@ class _OwnerBookingDetailsScreenState extends State<OwnerBookingDetailsScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: AppTheme.space20),
+
+            // Booking-Gated Direct Contact Section
+            _buildContactSection(),
             const SizedBox(height: AppTheme.space32),
 
             // Actions Based on Current Lifecycle State
@@ -288,6 +338,219 @@ class _OwnerBookingDetailsScreenState extends State<OwnerBookingDetailsScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildContactSection() {
+    if (_currentBooking.status == BookingStatus.CONFIRMED) {
+      if (_isLoadingContact) {
+        return Container(
+          padding: const EdgeInsets.all(AppTheme.space20),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceColor,
+            borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+            border: Border.all(color: AppTheme.borderColor),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.brandColor),
+              ),
+              SizedBox(width: 12),
+              Text(
+                'Retrieving client contact details...',
+                style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
+              ),
+            ],
+          ),
+        );
+      }
+
+      if (_bookingContact != null) {
+        return Container(
+          padding: const EdgeInsets.all(AppTheme.space20),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceColor,
+            borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+            border: Border.all(color: AppTheme.brandColor.withOpacity(0.3), width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.brandColor.withOpacity(0.06),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.brandColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(Icons.person_pin_circle_outlined, color: AppTheme.brandColor, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Client Contact Details',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimaryColor,
+                          ),
+                        ),
+                        Text(
+                          'Unlocked for this accepted booking',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: AppTheme.brandColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppTheme.space16),
+              const Divider(color: AppTheme.borderColor),
+              const SizedBox(height: AppTheme.space12),
+
+              Row(
+                children: [
+                  const Icon(Icons.person_outline, size: 18, color: AppTheme.textSecondaryColor),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _bookingContact!.contactName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: AppTheme.textPrimaryColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.phone_outlined, size: 18, color: AppTheme.textSecondaryColor),
+                  const SizedBox(width: 10),
+                  Text(
+                    _bookingContact!.phoneNumber,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: AppTheme.textPrimaryColor,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppTheme.space20),
+
+              // Action Buttons for Owner
+              Row(
+                children: [
+                  Expanded(
+                    child: BkPrimaryButton(
+                      label: 'WhatsApp Client',
+                      icon: Icons.chat_bubble_outline_rounded,
+                      onPressed: () {
+                        ContactHelper.launchWhatsApp(
+                          context,
+                          phone: _bookingContact!.whatsappInternationalNumber ?? _bookingContact!.phoneNumber,
+                          message: _bookingContact!.prefilledMessage,
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: BkSecondaryButton(
+                      label: 'Call Client',
+                      icon: Icons.phone_forwarded_outlined,
+                      onPressed: () {
+                        ContactHelper.launchCall(
+                          context,
+                          phone: _bookingContact!.phoneNumber,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      }
+
+      if (_contactError != null) {
+        return Container(
+          padding: const EdgeInsets.all(AppTheme.space16),
+          decoration: BoxDecoration(
+            color: AppTheme.errorColor.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+            border: Border.all(color: AppTheme.errorColor.withOpacity(0.2)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.info_outline, color: AppTheme.errorColor, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  _contactError!,
+                  style: const TextStyle(color: AppTheme.errorColor, fontSize: 12),
+                ),
+              ),
+              TextButton(
+                onPressed: _loadContact,
+                child: const Text('Retry', style: TextStyle(color: AppTheme.errorColor, fontSize: 12)),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+
+    if (_currentBooking.status == BookingStatus.PENDING) {
+      return Container(
+        padding: const EdgeInsets.all(AppTheme.space16),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+          border: Border.all(color: AppTheme.borderColor),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.lock_clock_outlined, color: AppTheme.accentColor, size: 18),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Client contact details are shielded until you approve this request.',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: AppTheme.textSecondaryColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   Widget _buildDetailRow(String label, String value, IconData icon) {

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../core/auth_service.dart';
 import '../../core/business_provider.dart';
+import '../../core/contact_helper.dart';
 import '../../models/business.dart';
 import '../shared/components/bk_components.dart';
 
@@ -28,6 +29,9 @@ class _CreateEditBusinessScreenState extends State<CreateEditBusinessScreen> {
   late TextEditingController _descController;
   late TextEditingController _addressController;
   late TextEditingController _phoneController;
+  late TextEditingController _whatsappController;
+  late TextEditingController _whatsappMessageController;
+  late bool _whatsappEnabled;
   late BusinessType _selectedType;
 
   String? _errorMessage;
@@ -41,6 +45,13 @@ class _CreateEditBusinessScreenState extends State<CreateEditBusinessScreen> {
     _descController = TextEditingController(text: widget.business?.description ?? '');
     _addressController = TextEditingController(text: widget.business?.address ?? '');
     _phoneController = TextEditingController(text: widget.business?.phoneNumber ?? '');
+    _whatsappController = TextEditingController(
+      text: widget.business?.whatsappNumber ?? widget.business?.phoneNumber ?? '',
+    );
+    _whatsappMessageController = TextEditingController(
+      text: widget.business?.whatsappMessage ?? '',
+    );
+    _whatsappEnabled = widget.business?.whatsappEnabled ?? false;
     _selectedType = widget.business?.businessType ?? BusinessType.TOILET_RENTAL;
   }
 
@@ -50,6 +61,8 @@ class _CreateEditBusinessScreenState extends State<CreateEditBusinessScreen> {
     _descController.dispose();
     _addressController.dispose();
     _phoneController.dispose();
+    _whatsappController.dispose();
+    _whatsappMessageController.dispose();
     super.dispose();
   }
 
@@ -63,6 +76,13 @@ class _CreateEditBusinessScreenState extends State<CreateEditBusinessScreen> {
     final token = context.read<AuthService>().token;
     if (token == null) return;
 
+    final whatsappNum = _whatsappEnabled && _whatsappController.text.trim().isNotEmpty
+        ? _whatsappController.text.trim()
+        : null;
+    final welcomeMsg = _whatsappEnabled && _whatsappMessageController.text.trim().isNotEmpty
+        ? _whatsappMessageController.text.trim()
+        : null;
+
     try {
       final provider = context.read<BusinessProvider>();
       if (isEditMode) {
@@ -73,6 +93,9 @@ class _CreateEditBusinessScreenState extends State<CreateEditBusinessScreen> {
           address: _addressController.text.trim(),
           phoneNumber: _phoneController.text.trim(),
           type: _selectedType,
+          whatsappNumber: whatsappNum,
+          whatsappEnabled: _whatsappEnabled,
+          whatsappMessage: welcomeMsg,
           token: token,
         );
       } else {
@@ -82,6 +105,9 @@ class _CreateEditBusinessScreenState extends State<CreateEditBusinessScreen> {
           address: _addressController.text.trim(),
           phoneNumber: _phoneController.text.trim(),
           type: _selectedType,
+          whatsappNumber: whatsappNum,
+          whatsappEnabled: _whatsappEnabled,
+          whatsappMessage: welcomeMsg,
           token: token,
         );
       }
@@ -276,18 +302,18 @@ class _CreateEditBusinessScreenState extends State<CreateEditBusinessScreen> {
                           ),
                           const SizedBox(height: AppTheme.space16),
 
-                          // Phone Number (+27 Format)
+                          // Phone Number (10-digit SA local format)
                           BkTextField(
                             controller: _phoneController,
                             label: 'Business Phone Number',
-                            hintText: '+27712345678',
+                            hintText: '0764321245',
                             prefixIcon: Icons.phone_outlined,
                             keyboardType: TextInputType.phone,
                             textInputAction: TextInputAction.next,
                             validator: (val) {
                               if (val == null || val.trim().isEmpty) return 'Phone number is required';
-                              if (!RegExp(r'^\+27[0-9]{9}$').hasMatch(val.trim())) {
-                                return 'Enter SA format: +27 followed by 9 digits';
+                              if (!ContactHelper.isValidSaLocalPhone(val.trim())) {
+                                return 'Enter a valid 10-digit SA number (e.g. 0764321245)';
                               }
                               return null;
                             },
@@ -315,6 +341,140 @@ class _CreateEditBusinessScreenState extends State<CreateEditBusinessScreen> {
                             maxLines: 3,
                             textInputAction: TextInputAction.done,
                             onFieldSubmitted: (_) => _save(),
+                          ),
+                          const SizedBox(height: AppTheme.space20),
+
+                          // WhatsApp Integration Card
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppTheme.backgroundColor,
+                              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                              border: Border.all(
+                                color: _whatsappEnabled
+                                    ? AppTheme.primaryColor.withOpacity(0.5)
+                                    : AppTheme.borderColor,
+                                width: 1.2,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.primaryColor.withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: const Icon(
+                                        Icons.chat_bubble_outline_rounded,
+                                        color: AppTheme.primaryColor,
+                                        size: 18,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    const Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'WhatsApp Direct Contact',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppTheme.darkTextColor,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Allow customers to enquire via Click-to-Chat',
+                                            style: TextStyle(
+                                              fontSize: 11.5,
+                                              color: AppTheme.secondaryTextColor,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Switch(
+                                      value: _whatsappEnabled,
+                                      activeColor: AppTheme.primaryColor,
+                                      onChanged: (val) {
+                                        setState(() {
+                                          _whatsappEnabled = val;
+                                          if (val && _whatsappController.text.trim().isEmpty) {
+                                            _whatsappController.text = _phoneController.text.trim();
+                                          }
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                if (_whatsappEnabled) ...[
+                                  const SizedBox(height: AppTheme.space16),
+                                  const Divider(color: AppTheme.borderColor),
+                                  const SizedBox(height: AppTheme.space12),
+
+                                  // Autofill shortcut button
+                                  if (_phoneController.text.trim().isNotEmpty &&
+                                      _whatsappController.text.trim() != _phoneController.text.trim())
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 12),
+                                      child: OutlinedButton.icon(
+                                        onPressed: () {
+                                          setState(() {
+                                            _whatsappController.text = _phoneController.text.trim();
+                                          });
+                                        },
+                                        icon: const Icon(Icons.copy_rounded, size: 14, color: AppTheme.primaryColor),
+                                        label: const Text(
+                                          'Use Business Phone Number',
+                                          style: TextStyle(fontSize: 12, color: AppTheme.primaryColor),
+                                        ),
+                                        style: OutlinedButton.styleFrom(
+                                          side: BorderSide(color: AppTheme.primaryColor.withOpacity(0.4)),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        ),
+                                      ),
+                                    ),
+
+                                  // WhatsApp Phone Field (10-digit SA local format)
+                                  BkTextField(
+                                    controller: _whatsappController,
+                                    label: 'WhatsApp Phone Number',
+                                    hintText: '0764321245',
+                                    prefixIcon: Icons.phone_android_rounded,
+                                    keyboardType: TextInputType.phone,
+                                    textInputAction: TextInputAction.next,
+                                    validator: (val) {
+                                      if (!_whatsappEnabled) return null;
+                                      if (val == null || val.trim().isEmpty) {
+                                        return 'WhatsApp number is required when enabled';
+                                      }
+                                      if (!ContactHelper.isValidSaLocalPhone(val.trim())) {
+                                        return 'Enter a valid 10-digit SA number (e.g. 0764321245)';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: AppTheme.space12),
+
+                                  // Custom Welcome Message
+                                  BkTextField(
+                                    controller: _whatsappMessageController,
+                                    label: 'Custom Greeting Message (Optional)',
+                                    hintText: 'e.g. Hi! Thanks for contacting us on Back2Kasi. How can we help?',
+                                    prefixIcon: Icons.message_outlined,
+                                    maxLines: 2,
+                                    textInputAction: TextInputAction.done,
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
                           const SizedBox(height: AppTheme.space24),
 

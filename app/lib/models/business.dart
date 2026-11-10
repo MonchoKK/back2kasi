@@ -12,6 +12,9 @@ class Business {
   final String phoneNumber;
   final BusinessType businessType;
   final int ownerId;
+  final String? whatsappNumber;
+  final bool whatsappEnabled;
+  final String? whatsappMessage;
 
   Business({
     required this.id,
@@ -21,6 +24,9 @@ class Business {
     required this.phoneNumber,
     required this.businessType,
     required this.ownerId,
+    this.whatsappNumber,
+    this.whatsappEnabled = false,
+    this.whatsappMessage,
   });
 
   factory Business.fromJson(Map<String, dynamic> json) {
@@ -34,6 +40,9 @@ class Business {
           ? BusinessType.COLD_ROOM_RENTAL
           : BusinessType.TOILET_RENTAL,
       ownerId: json['ownerId'] as int,
+      whatsappNumber: json['whatsappNumber'] as String?,
+      whatsappEnabled: json['whatsappEnabled'] == true || json['whatsapp_enabled'] == 1,
+      whatsappMessage: (json['whatsappMessage'] ?? json['whatsapp_message']) as String?,
     );
   }
 
@@ -46,6 +55,78 @@ class Business {
       'phoneNumber': phoneNumber,
       'businessType': businessType.toString().split('.').last,
       'ownerId': ownerId,
+      'whatsappNumber': whatsappNumber,
+      'whatsappEnabled': whatsappEnabled,
+      'whatsappMessage': whatsappMessage,
+    };
+  }
+
+  Business copyWith({
+    int? id,
+    String? name,
+    String? description,
+    String? address,
+    String? phoneNumber,
+    BusinessType? businessType,
+    int? ownerId,
+    String? whatsappNumber,
+    bool? whatsappEnabled,
+    String? whatsappMessage,
+  }) {
+    return Business(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      address: address ?? this.address,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      businessType: businessType ?? this.businessType,
+      ownerId: ownerId ?? this.ownerId,
+      whatsappNumber: whatsappNumber ?? this.whatsappNumber,
+      whatsappEnabled: whatsappEnabled ?? this.whatsappEnabled,
+      whatsappMessage: whatsappMessage ?? this.whatsappMessage,
+    );
+  }
+}
+
+/**
+ * Public/owner contact information payload.
+ */
+class BusinessContact {
+  final int businessId;
+  final String businessName;
+  final String phoneNumber;
+  final String? whatsappNumber;
+  final bool whatsappEnabled;
+  final String? whatsappMessage;
+
+  BusinessContact({
+    required this.businessId,
+    required this.businessName,
+    required this.phoneNumber,
+    this.whatsappNumber,
+    this.whatsappEnabled = false,
+    this.whatsappMessage,
+  });
+
+  factory BusinessContact.fromJson(Map<String, dynamic> json) {
+    return BusinessContact(
+      businessId: json['businessId'] as int,
+      businessName: json['businessName'] as String,
+      phoneNumber: json['phoneNumber'] as String,
+      whatsappNumber: json['whatsappNumber'] as String?,
+      whatsappEnabled: json['whatsappEnabled'] == true,
+      whatsappMessage: json['whatsappMessage'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'businessId': businessId,
+      'businessName': businessName,
+      'phoneNumber': phoneNumber,
+      'whatsappNumber': whatsappNumber,
+      'whatsappEnabled': whatsappEnabled,
+      'whatsappMessage': whatsappMessage,
     };
   }
 }

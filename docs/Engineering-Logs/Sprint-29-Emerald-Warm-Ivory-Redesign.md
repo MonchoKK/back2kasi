@@ -54,3 +54,4 @@ Why this works: It feels established and premium without being overly corporate.
 ## 4. Verification
 
 - Added `app/test/bk_components_test.dart` verifying all `Bk*` components in the Emerald + Warm Ivory theme.
+
