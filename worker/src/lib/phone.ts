@@ -47,3 +47,4 @@ export function validateAndNormalizeSaLocalPhone(phone: string | null | undefine
     error: 'Please enter a valid 10-digit South African phone number starting with 0 (e.g. 0764321245)',
   };
 }
+

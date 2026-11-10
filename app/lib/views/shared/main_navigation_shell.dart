@@ -2,11 +2,10 @@
 import 'package:flutter/material.dart';
 import '../../config/app_theme.dart';
 import '../customer/browse_screen.dart';
-import '../booking/my_bookings_screen.dart';
 import '../business/dashboard_screen.dart';
 
 /**
- * Main shell routing authenticated traffic between Browse, My Bookings, and Owner Mode.
+ * Main shell routing authenticated traffic between Marketplace Browse and Owner Mode.
  *
  * <p>Wraps a clean, modern BottomNavigationBar matching the Emerald Light identity.</p>
  */
@@ -29,7 +28,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
   final List<Widget> _screens = const [
     BrowseScreen(),
-    MyBookingsScreen(),
     DashboardScreen(),
   ];
 
@@ -68,19 +66,14 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           type: BottomNavigationBarType.fixed,
           items: const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.search_outlined),
-              activeIcon: Icon(Icons.search),
-              label: 'Browse',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today_outlined),
-              activeIcon: Icon(Icons.calendar_today),
-              label: 'My Bookings',
-            ),
-            BottomNavigationBarItem(
               icon: Icon(Icons.storefront_outlined),
               activeIcon: Icon(Icons.storefront),
-              label: 'My Businesses',
+              label: 'Marketplace',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.business_center_outlined),
+              activeIcon: Icon(Icons.business_center),
+              label: 'My Business',
             ),
           ],
         ),

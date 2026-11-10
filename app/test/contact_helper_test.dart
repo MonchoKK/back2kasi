@@ -43,6 +43,26 @@ void main() {
       expect(urlFromIntl, 'tel:0764321245');
     });
 
+    test('buildBusinessEnquiryMessage generates canonical profile enquiry', () {
+      final defaultMsg = ContactHelper.buildBusinessEnquiryMessage();
+      expect(defaultMsg.contains('Hi! I found your business on Back2Kasi.'), isTrue);
+      expect(defaultMsg.contains("I'd like to find out more about your services and pricing."), isTrue);
+      expect(defaultMsg.contains('Thank you!'), isTrue);
+
+      final customMsg = ContactHelper.buildBusinessEnquiryMessage(
+        customWelcomeMessage: 'Welcome to our portable toilet rental service! How can we help?',
+      );
+      expect(customMsg, 'Welcome to our portable toilet rental service! How can we help?');
+    });
+
+    test('buildCatalogueItemMessage generates canonical item enquiry', () {
+      final msg = ContactHelper.buildCatalogueItemMessage(itemName: 'VIP Executive Mobile Toilet');
+      expect(msg.contains('Hi! I found your business on Back2Kasi.'), isTrue);
+      expect(msg.contains("I'm interested in your VIP Executive Mobile Toilet service."), isTrue);
+      expect(msg.contains('Could you please provide more information?'), isTrue);
+      expect(msg.contains('Thank you!'), isTrue);
+    });
+
     test('buildBookingCustomerMessage generates context-aware enquiry', () {
       final msg = ContactHelper.buildBookingCustomerMessage(
         businessName: 'Kasi Sanitation',
@@ -69,3 +89,4 @@ void main() {
     });
   });
 }
+

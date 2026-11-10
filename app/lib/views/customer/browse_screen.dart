@@ -4,10 +4,10 @@ import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../core/auth_service.dart';
 import '../../core/business_provider.dart';
+import '../../core/contact_helper.dart';
 import '../../core/rental_unit_provider.dart';
 import '../../models/business.dart';
 import '../../models/rental_unit.dart';
-import '../booking/create_booking_screen.dart';
 import '../shared/components/bk_components.dart';
 import '../shared/widgets/cached_image_view.dart';
 import '../shared/widgets/skeleton_loading_card.dart';
@@ -269,7 +269,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
                         title: 'No rentals found',
                         message: _searchQuery.isNotEmpty || _selectedCategory != 'ALL'
                             ? 'No available rental units match your filter criteria.'
-                            : 'No rental units currently available for booking.',
+                            : 'No rental units currently available in catalogue.',
                         actionLabel: _searchQuery.isNotEmpty || _selectedCategory != 'ALL'
                             ? 'Reset Filters'
                             : null,
@@ -718,24 +718,27 @@ class _BrowseScreenState extends State<BrowseScreen> {
                           child: const Text('Details', style: TextStyle(fontSize: 12, color: AppTheme.darkColor)),
                         ),
                         const SizedBox(width: 8),
-                        ElevatedButton(
+                        ElevatedButton.icon(
                           onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => CreateBookingScreen(unit: unit),
-                              ),
+                            final targetBusiness = business;
+                            if (targetBusiness == null) return;
+                            final phone = targetBusiness.whatsappNumber ?? targetBusiness.phoneNumber;
+                            final msg = ContactHelper.buildCatalogueItemMessage(
+                              itemName: unit.name,
                             );
+                            ContactHelper.launchWhatsApp(context, phone: phone, message: msg);
                           },
+                          icon: const Icon(Icons.chat_bubble_outline_rounded, size: 14),
+                          label: const Text('Enquire', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size(0, 36),
                             backgroundColor: AppTheme.brandColor,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                            foregroundColor: AppTheme.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                             ),
                           ),
-                          child: const Text('Book Now', style: TextStyle(fontSize: 12, color: AppTheme.white)),
                         ),
                       ],
                     ),
@@ -811,13 +814,44 @@ class _BrowseScreenState extends State<BrowseScreen> {
                             ),
                           ),
                           const SizedBox(height: 2),
-                          Text(
-                            typeLabel,
-                            style: const TextStyle(
-                              color: AppTheme.brandColor,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                typeLabel,
+                                style: const TextStyle(
+                                  color: AppTheme.brandColor,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              if (business.whatsappEnabled &&
+                                  business.whatsappNumber != null &&
+                                  business.whatsappNumber!.isNotEmpty) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF25D366).withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.chat_bubble_outline, size: 10, color: Color(0xFF25D366)),
+                                      SizedBox(width: 3),
+                                      Text(
+                                        'WhatsApp',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF25D366),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ],
                       ),
@@ -851,7 +885,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
                     ),
                     const SizedBox(width: 8),
                     const Text(
-                      'View Inventory',
+                      'View Catalogue',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppTheme.brandColor,

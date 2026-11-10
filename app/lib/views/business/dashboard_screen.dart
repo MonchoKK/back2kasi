@@ -3,27 +3,26 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../core/auth_service.dart';
-import '../../core/booking_provider.dart';
 import '../../core/business_provider.dart';
+import '../../core/contact_helper.dart';
 import '../../core/rental_unit_provider.dart';
 import '../../models/business.dart';
-import '../../models/booking.dart';
 import '../../models/rental_unit.dart';
+import '../customer/customer_business_detail_screen.dart';
 import '../rental_unit/create_edit_unit_screen.dart';
 import '../shared/components/bk_components.dart';
 import '../shared/widgets/cached_image_view.dart';
 import 'business_detail_screen.dart';
 import 'create_edit_business_screen.dart';
-import 'owner_booking_requests_screen.dart';
 
 /**
  * Screen presenting the Business Owner Dashboard interface.
  *
  * <p>Emerald Light Marketplace design:
- * - Real-time statistics (Units, Pending Requests, Active Bookings)
- * - Live catalogue preview carousel
+ * - Real-time statistics (Catalogue Units, WhatsApp Status)
+ * - WhatsApp direct inquiry preview and testing
  * - Quick business profile switcher
- * - Fast navigation to bookings and inventory management.</p>
+ * - Fast navigation to catalogue management and public marketplace preview.</p>
  */
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -49,9 +48,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     // Fetch owner's businesses
     await context.read<BusinessProvider>().fetchMyBusinesses(token);
-    
-    // Fetch owner's bookings
-    await context.read<BookingProvider>().fetchOwnerBookings(token);
 
     final businesses = context.read<BusinessProvider>().myBusinesses;
     if (businesses.isNotEmpty) {
@@ -74,10 +70,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final authService = context.watch<AuthService>();
     final businessProvider = context.watch<BusinessProvider>();
     final rentalUnitProvider = context.watch<RentalUnitProvider>();
-    final bookingProvider = context.watch<BookingProvider>();
 
     final myBusinesses = businessProvider.myBusinesses;
-    final isLoading = businessProvider.isLoading || bookingProvider.isLoading || rentalUnitProvider.isLoading;
+    final isLoading = businessProvider.isLoading || rentalUnitProvider.isLoading;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
@@ -86,10 +81,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: AppTheme.textSecondaryColor),
+            tooltip: 'Refresh',
             onPressed: _loadDashboardData,
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: AppTheme.textSecondaryColor),
+            tooltip: 'Logout',
             onPressed: () => authService.logout(),
           ),
         ],
@@ -215,20 +212,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         const SizedBox(height: AppTheme.space20),
 
-        // Statistics grid layout
+        // Statistics & WhatsApp Hub
         Row(
           children: [
             Expanded(
-              child: _buildStatCard('Rental Units', '${rentalUnits.length}', AppTheme.brandColor),
+              child: _buildStatCard('Catalogue Items', '${rentalUnits.length}', AppTheme.brandColor),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _buildStatCard('Pending Requests', '$pendingRequests', AppTheme.accentColor),
+              child: _buildWhatsAppStatusCard(currentBusiness),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        _buildStatCard('Active Bookings', '$activeBookings', AppTheme.successColor, isFullWidth: true),
 
         const SizedBox(height: AppTheme.space24),
 
@@ -402,7 +397,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
         // Owner Actions
         const Text(
-          'Management',
+          'Marketplace Management',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -413,24 +408,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 12),
 
         _buildActionButton(
-          label: 'Booking Requests',
-          icon: Icons.calendar_today_outlined,
-          badgeCount: pendingRequests,
-          onTap: () async {
-            await Navigator.push(
+          label: 'Preview Public Listing',
+          icon: Icons.visibility_outlined,
+          subtitle: 'View your profile as customers see it',
+          onTap: () {
+            Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => OwnerBookingRequestsScreen(business: currentBusiness),
+                builder: (context) => CustomerBusinessDetailScreen(business: currentBusiness),
               ),
             );
-            _loadDashboardData();
           },
         ),
         const SizedBox(height: 10),
 
         _buildActionButton(
-          label: 'Rental Units',
-          icon: Icons.wc_outlined,
+          label: 'Manage Catalogue & Photos',
+          icon: Icons.inventory_2_outlined,
+          subtitle: '${rentalUnits.length} equipment units listed',
           onTap: () async {
             await Navigator.push(
               context,
@@ -444,8 +439,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 10),
 
         _buildActionButton(
-          label: 'Business Profile',
-          icon: Icons.edit_note_outlined,
+          label: 'Business & WhatsApp Settings',
+          icon: Icons.tune_outlined,
+          subtitle: 'Update phone, address, and WhatsApp',
           onTap: () async {
             await Navigator.push(
               context,
@@ -472,6 +468,84 @@ class _DashboardScreenState extends State<DashboardScreen> {
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildWhatsAppStatusCard(Business business) {
+    final bool isEnabled = business.whatsappEnabled;
+    final String phone = business.whatsappNumber ?? business.phoneNumber;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(
+          color: isEnabled ? AppTheme.brandColor.withOpacity(0.3) : AppTheme.borderColor,
+          width: 1.0,
+        ),
+        boxShadow: AppTheme.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: isEnabled ? AppTheme.brandColor.withOpacity(0.12) : AppTheme.darkColor.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Icon(
+                  Icons.chat_bubble_rounded,
+                  color: isEnabled ? AppTheme.brandColor : AppTheme.textSecondaryColor,
+                  size: 14,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                isEnabled ? 'WhatsApp Active' : 'WhatsApp Off',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: isEnabled ? AppTheme.brandColor : AppTheme.textSecondaryColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            phone.isNotEmpty ? phone : 'No number',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimaryColor,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: () {
+              if (phone.isNotEmpty) {
+                final msg = ContactHelper.buildBusinessEnquiryMessage(
+                  customWelcomeMessage: business.whatsappMessage,
+                );
+                ContactHelper.launchWhatsApp(context, phone: phone, message: msg);
+              }
+            },
+            child: const Text(
+              'Test Link →',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.brandColor,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -513,6 +587,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildActionButton({
     required String label,
     required IconData icon,
+    String? subtitle,
     int badgeCount = 0,
     required VoidCallback onTap,
   }) {
@@ -542,13 +617,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Text(
-                    label,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                      color: AppTheme.textPrimaryColor,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          color: AppTheme.textPrimaryColor,
+                        ),
+                      ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textSecondaryColor,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 if (badgeCount > 0)

@@ -74,6 +74,30 @@ class ContactHelper {
     return 'tel:$localNumber';
   }
 
+  // --- Context-Aware Marketplace Messages ---
+
+  /**
+   * Canonical message sent when customer clicks WhatsApp Chat on a business profile.
+   */
+  static String buildBusinessEnquiryMessage({String? customWelcomeMessage}) {
+    if (customWelcomeMessage != null && customWelcomeMessage.trim().isNotEmpty) {
+      return customWelcomeMessage.trim();
+    }
+    return 'Hi! I found your business on Back2Kasi.\n\n'
+        "I'd like to find out more about your services and pricing.\n\n"
+        'Thank you!';
+  }
+
+  /**
+   * Canonical message sent when customer clicks "Enquire on WhatsApp" on a catalogue item.
+   */
+  static String buildCatalogueItemMessage({required String itemName}) {
+    return 'Hi! I found your business on Back2Kasi.\n\n'
+        "I'm interested in your $itemName service.\n\n"
+        'Could you please provide more information?\n\n'
+        'Thank you!';
+  }
+
   // --- Booking-Gated Context-Aware Messages ---
 
   /**

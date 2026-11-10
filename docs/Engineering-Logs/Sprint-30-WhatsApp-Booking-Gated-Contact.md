@@ -75,3 +75,4 @@ Direct contact (both WhatsApp Click-to-Chat and ordinary telephone calls) is str
 
 - Worker typecheck: `tsc --noEmit` passed with 0 errors.
 - Unit tests: `app/test/contact_helper_test.dart` covering local SA formatting, international conversion, SA phone validation, and URL construction.
+

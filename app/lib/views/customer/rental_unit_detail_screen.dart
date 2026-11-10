@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../core/business_provider.dart';
+import '../../core/contact_helper.dart';
 import '../../models/business.dart';
 import '../../models/rental_unit.dart';
-import '../booking/create_booking_screen.dart';
 import '../shared/components/bk_components.dart';
 import '../shared/widgets/cached_image_view.dart';
 import 'customer_business_detail_screen.dart';
@@ -17,7 +17,7 @@ import 'customer_business_detail_screen.dart';
  * - High-resolution hero photo carousel with dot indicators
  * - Pinch-to-zoom interactive lightbox
  * - Key specification tiles with clean white cards
- * - Sticky bottom booking bar with Emerald CTA button.</p>
+ * - Sticky bottom WhatsApp enquiry bar with Emerald CTA button.</p>
  */
 class RentalUnitDetailScreen extends StatefulWidget {
   final RentalUnit unit;
@@ -422,18 +422,18 @@ class _RentalUnitDetailScreenState extends State<RentalUnitDetailScreen> {
                     child: const Column(
                       children: [
                         _TrustItem(
-                          icon: Icons.security_outlined,
-                          text: 'Direct booking requests reviewed by verified township business owner.',
+                          icon: Icons.verified_user_outlined,
+                          text: 'Direct communication with verified local township business owner.',
                         ),
                         SizedBox(height: 12),
                         _TrustItem(
-                          icon: Icons.cancel_outlined,
-                          text: 'Free cancellation until booking request is confirmed.',
+                          icon: Icons.chat_bubble_outline_rounded,
+                          text: 'Fast WhatsApp response for quotes, availability, and event dates.',
                         ),
                         SizedBox(height: 12),
                         _TrustItem(
                           icon: Icons.local_shipping_outlined,
-                          text: 'Delivery, positioning, and site servicing arranged with provider.',
+                          text: 'Delivery, positioning, and site servicing arranged directly with provider.',
                         ),
                       ],
                     ),
@@ -447,7 +447,7 @@ class _RentalUnitDetailScreenState extends State<RentalUnitDetailScreen> {
         ],
       ),
 
-      // Sticky Bottom Booking Bar
+      // Sticky Bottom WhatsApp Action Bar
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         decoration: BoxDecoration(
@@ -471,21 +471,32 @@ class _RentalUnitDetailScreenState extends State<RentalUnitDetailScreen> {
                   ),
                 ],
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: 14),
               Expanded(
                 child: BkPrimaryButton(
-                  label: 'Book Unit',
-                  icon: Icons.calendar_today,
+                  label: 'Enquire on WhatsApp',
+                  icon: Icons.chat_bubble_outline_rounded,
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CreateBookingScreen(unit: widget.unit),
-                      ),
+                    final targetBusiness = business;
+                    if (targetBusiness == null) return;
+                    final phone = targetBusiness.whatsappNumber ?? targetBusiness.phoneNumber;
+                    final msg = ContactHelper.buildCatalogueItemMessage(
+                      itemName: widget.unit.name,
                     );
+                    ContactHelper.launchWhatsApp(context, phone: phone, message: msg);
                   },
                 ),
               ),
+              if (business != null && business.phoneNumber.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                BkSecondaryButton(
+                  label: 'Call',
+                  icon: Icons.phone_forwarded_outlined,
+                  onPressed: () {
+                    ContactHelper.launchCall(context, phone: business.phoneNumber);
+                  },
+                ),
+              ],
             ],
           ),
         ),

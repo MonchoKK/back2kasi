@@ -2,10 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
+import '../../core/contact_helper.dart';
 import '../../core/rental_unit_provider.dart';
 import '../../models/business.dart';
 import '../../models/rental_unit.dart';
-import '../booking/create_booking_screen.dart';
 import '../shared/components/bk_components.dart';
 import '../shared/widgets/cached_image_view.dart';
 import 'rental_unit_detail_screen.dart';
@@ -45,7 +45,7 @@ class _CustomerBusinessDetailScreenState extends State<CustomerBusinessDetailScr
     final isLoading = provider.isLoading;
     final errorMessage = provider.errorMessage;
 
-    // Customers only browse AVAILABLE units for booking
+    // Customers browse AVAILABLE catalogue items
     final availableUnits = units.where((u) => u.status == RentalUnitStatus.AVAILABLE).toList();
 
     return Scaffold(
@@ -173,17 +173,39 @@ class _CustomerBusinessDetailScreenState extends State<CustomerBusinessDetailScr
           const SizedBox(height: 8),
           Row(
             children: [
-              Icon(Icons.lock_clock_outlined, size: 14, color: AppTheme.emerald.withOpacity(0.8)),
+              const Icon(Icons.phone_outlined, size: 16, color: AppTheme.textSecondaryColor),
               const SizedBox(width: 6),
-              const Expanded(
-                child: Text(
-                  'Verified business • Direct contact unlocked upon booking acceptance',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: AppTheme.textSecondaryColor,
-                  ),
+              Text(
+                widget.business.phoneNumber,
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.space16),
+
+          // Main Contact Action Row
+          Row(
+            children: [
+              Expanded(
+                child: BkPrimaryButton(
+                  label: 'Chat with Business',
+                  icon: Icons.chat_bubble_outline_rounded,
+                  onPressed: () {
+                    final phone = widget.business.whatsappNumber ?? widget.business.phoneNumber;
+                    final msg = ContactHelper.buildBusinessEnquiryMessage(
+                      customWelcomeMessage: widget.business.whatsappMessage,
+                    );
+                    ContactHelper.launchWhatsApp(context, phone: phone, message: msg);
+                  },
                 ),
+              ),
+              const SizedBox(width: 10),
+              BkSecondaryButton(
+                label: 'Call',
+                icon: Icons.phone_forwarded_outlined,
+                onPressed: () {
+                  ContactHelper.launchCall(context, phone: widget.business.phoneNumber);
+                },
               ),
             ],
           ),
@@ -302,6 +324,7 @@ class _CustomerBusinessDetailScreenState extends State<CustomerBusinessDetailScr
                 Row(
                   children: [
                     Expanded(
+                      flex: 4,
                       child: BkSecondaryButton(
                         label: 'View Details',
                         onPressed: () {
@@ -319,15 +342,16 @@ class _CustomerBusinessDetailScreenState extends State<CustomerBusinessDetailScr
                     ),
                     const SizedBox(width: 10),
                     Expanded(
+                      flex: 6,
                       child: BkPrimaryButton(
-                        label: 'Book Now',
+                        label: 'Enquire on WhatsApp',
+                        icon: Icons.chat_bubble_outline_rounded,
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CreateBookingScreen(unit: unit),
-                            ),
+                          final phone = widget.business.whatsappNumber ?? widget.business.phoneNumber;
+                          final msg = ContactHelper.buildCatalogueItemMessage(
+                            itemName: unit.name,
                           );
+                          ContactHelper.launchWhatsApp(context, phone: phone, message: msg);
                         },
                       ),
                     ),

@@ -1,6 +1,6 @@
 # Back2Kasi Engineering Log
 
-> **Last Updated:** 2026-11-10 | **Current Sprint:** Sprint 29 – Emerald + Warm Ivory Redesign
+> **Last Updated:** 2026-11-10 | **Current Sprint:** Sprint 31 – Revised Marketplace Specification (Direct WhatsApp Model)
 
 ---
 
@@ -17,6 +17,8 @@
 | Sprint 27 – Business Owner Experience | Dashboard live preview carousel, status filters, one-tap maintenance toggle | ✅ Complete | [Sprint-27-Business-Owner-Experience-Redesign.md](Engineering-Logs/Sprint-27-Business-Owner-Experience-Redesign.md) |
 | Sprint 28 – Final Polish & Verification | Shimmer skeleton screens, empty states, full 22-test regression suite | ✅ Complete | [Sprint-28-Final-Polish-And-Verification.md](Engineering-Logs/Sprint-28-Final-Polish-And-Verification.md) |
 | Sprint 29 – Emerald + Warm Ivory Redesign | Emerald + Warm Ivory + Charcoal + Gold identity, shared Bk* library | ✅ Complete | [Sprint-29-Emerald-Warm-Ivory-Redesign.md](Engineering-Logs/Sprint-29-Emerald-Warm-Ivory-Redesign.md) |
+| Sprint 30 – WhatsApp & Business Contact | Booking-gated WhatsApp Click-to-Chat, D1 migration, SA local 0XXXXXXXXX format, bidirectional contact | ✅ Complete | [Sprint-30-WhatsApp-Booking-Gated-Contact.md](Engineering-Logs/Sprint-30-WhatsApp-Booking-Gated-Contact.md) |
+| Sprint 31 – Revised Marketplace Specification | Direct WhatsApp enquiry model, decoupled booking flow, canonical enquiry templates | ✅ Complete | [Sprint-31-Revised-Marketplace-Direct-WhatsApp.md](Engineering-Logs/Sprint-31-Revised-Marketplace-Direct-WhatsApp.md) |
 
 ---
 
