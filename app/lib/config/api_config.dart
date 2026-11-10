@@ -30,6 +30,10 @@ class ApiConfig {
       return 'https://back2kasi-api.back2kasi.workers.dev';
     }
 
+    if (kIsWeb) {
+      return 'http://localhost:8787';
+    }
+
     // Local development routing (port 8787)
     if (Platform.isAndroid) {
       // 10.0.2.2 is Android emulator alias to host machine
