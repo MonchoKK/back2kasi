@@ -30,8 +30,10 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
   late TextEditingController _descController;
   late TextEditingController _priceController;
   late TextEditingController _capacityController;
+  late TextEditingController _priceUnitController;
 
-  late RentalUnitType _selectedType;
+  late ItemType _selectedItemType;
+  late bool _isPriceOnRequest;
   late RentalUnitStatus _selectedStatus;
 
   List<RentalUnitImage> _remoteImages = [];
@@ -48,11 +50,13 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
     _nameController = TextEditingController(text: widget.unit?.name ?? '');
     _descController = TextEditingController(text: widget.unit?.description ?? '');
     _priceController = TextEditingController(
-        text: widget.unit?.pricePerDay != null ? widget.unit!.pricePerDay.toString() : '');
+        text: widget.unit?.price != null ? widget.unit!.price.toString() : '');
     _capacityController = TextEditingController(
         text: widget.unit?.capacity != null ? widget.unit!.capacity.toString() : '1');
+    _priceUnitController = TextEditingController(text: widget.unit?.priceUnit ?? '');
 
-    _selectedType = widget.unit?.rentalUnitType ?? RentalUnitType.STANDARD_TOILET;
+    _selectedItemType = widget.unit?.itemType ?? ItemType.SERVICE;
+    _isPriceOnRequest = widget.unit?.isPriceOnRequest ?? false;
     _selectedStatus = widget.unit?.status ?? RentalUnitStatus.AVAILABLE;
 
     _remoteImages = List.from(widget.unit?.images ?? []);
@@ -64,6 +68,7 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
     _descController.dispose();
     _priceController.dispose();
     _capacityController.dispose();
+    _priceUnitController.dispose();
     super.dispose();
   }
 
@@ -262,8 +267,11 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
       final provider = context.read<RentalUnitProvider>();
       final name = _nameController.text.trim();
       final desc = _descController.text.trim();
-      final price = double.parse(_priceController.text);
-      final cap = int.parse(_capacityController.text);
+      final price = _isPriceOnRequest ? 0.0 : (double.tryParse(_priceController.text) ?? 0.0);
+      final priceUnit = _isPriceOnRequest || _priceUnitController.text.trim().isEmpty
+          ? null
+          : _priceUnitController.text.trim();
+      final cap = int.tryParse(_capacityController.text) ?? 1;
 
       if (isEditMode) {
         await provider.updateRentalUnit(
@@ -272,8 +280,14 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
           name: name,
           description: desc,
           pricePerDay: price,
+          price: price,
+          isPriceOnRequest: _isPriceOnRequest,
+          priceUnit: priceUnit,
+          itemType: _selectedItemType,
           capacity: cap,
-          type: _selectedType,
+          type: _selectedItemType == ItemType.PRODUCT
+              ? RentalUnitType.GENERAL_PRODUCT
+              : RentalUnitType.GENERAL_SERVICE,
           status: _selectedStatus,
           token: token,
         );
@@ -283,8 +297,14 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
           name: name,
           description: desc,
           pricePerDay: price,
+          price: price,
+          isPriceOnRequest: _isPriceOnRequest,
+          priceUnit: priceUnit,
+          itemType: _selectedItemType,
           capacity: cap,
-          type: _selectedType,
+          type: _selectedItemType == ItemType.PRODUCT
+              ? RentalUnitType.GENERAL_PRODUCT
+              : RentalUnitType.GENERAL_SERVICE,
           token: token,
         );
 
@@ -333,14 +353,6 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
   Widget build(BuildContext context) {
     final isLoading = context.watch<RentalUnitProvider>().isLoading;
 
-    final Map<RentalUnitType, String> typeNames = {
-      RentalUnitType.STANDARD_TOILET: 'Standard Toilet',
-      RentalUnitType.VIP_TOILET: 'VIP Toilet Trailer',
-      RentalUnitType.CHEMICAL_TOILET: 'Chemical Toilet',
-      RentalUnitType.STANDARD_COLD_ROOM: 'Standard Cold Room',
-      RentalUnitType.MOBILE_COLD_ROOM: 'Mobile Cold Room',
-    };
-
     final Map<RentalUnitStatus, String> statusNames = {
       RentalUnitStatus.AVAILABLE: 'Available for Bookings',
       RentalUnitStatus.RENTED: 'Currently Rented out',
@@ -350,7 +362,7 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: BkAppBar(
-        title: isEditMode ? 'Edit Rental Unit' : 'Add Rental Unit',
+        title: isEditMode ? 'Edit Catalogue Item' : 'Add Catalogue Item',
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -421,7 +433,7 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            isEditMode ? 'Modify Specifications' : 'List New Inventory Unit',
+                            isEditMode ? 'Modify Catalogue Offering' : 'Add Product or Service',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
@@ -430,7 +442,7 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
                           ),
                           const SizedBox(height: 4),
                           const Text(
-                            'Set the price, unit class type, capacity, and details.',
+                            'Classify as a product or service, set pricing, and details.',
                             style: TextStyle(
                               fontSize: 13,
                               color: AppTheme.secondaryTextColor,
@@ -438,24 +450,12 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
                           ),
                           const SizedBox(height: AppTheme.space24),
 
-                          // Name
-                          BkTextField(
-                            controller: _nameController,
-                            label: 'Unit Identifier / Name',
-                            hintText: 'e.g. VIP Trailer Unit 1',
-                            prefixIcon: Icons.badge_outlined,
-                            textInputAction: TextInputAction.next,
-                            validator: (val) =>
-                                val == null || val.trim().isEmpty ? 'Unit name is required' : null,
-                          ),
-                          const SizedBox(height: AppTheme.space16),
-
-                          // Inventory Category Dropdown
+                          // Classification Selection (Product vs Service)
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Inventory Category',
+                                'Catalogue Classification',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
@@ -463,96 +463,201 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
                                 ),
                               ),
                               const SizedBox(height: AppTheme.space8),
-                              DropdownButtonFormField<RentalUnitType>(
-                                value: _selectedType,
-                                decoration: InputDecoration(
-                                  prefixIcon: const Icon(
-                                    Icons.category_outlined,
-                                    color: AppTheme.textSecondaryColor,
-                                    size: 20,
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ChoiceChip(
+                                      selected: _selectedItemType == ItemType.SERVICE,
+                                      showCheckmark: false,
+                                      avatar: Icon(
+                                        Icons.handyman_outlined,
+                                        size: 16,
+                                        color: _selectedItemType == ItemType.SERVICE
+                                            ? AppTheme.white
+                                            : AppTheme.textSecondaryColor,
+                                      ),
+                                      label: const Text('Service Offering'),
+                                      labelStyle: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: _selectedItemType == ItemType.SERVICE
+                                            ? AppTheme.white
+                                            : AppTheme.textSecondaryColor,
+                                      ),
+                                      backgroundColor: AppTheme.surfaceColor,
+                                      selectedColor: AppTheme.brandColor,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                                        side: BorderSide(
+                                          color: _selectedItemType == ItemType.SERVICE
+                                              ? AppTheme.brandColor
+                                              : AppTheme.borderColor,
+                                        ),
+                                      ),
+                                      onSelected: (val) {
+                                        setState(() {
+                                          _selectedItemType = ItemType.SERVICE;
+                                        });
+                                      },
+                                    ),
                                   ),
-                                  filled: true,
-                                  fillColor: AppTheme.surfaceColor,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                                    borderSide: const BorderSide(color: AppTheme.borderColor, width: 1.2),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: ChoiceChip(
+                                      selected: _selectedItemType == ItemType.PRODUCT,
+                                      showCheckmark: false,
+                                      avatar: Icon(
+                                        Icons.shopping_bag_outlined,
+                                        size: 16,
+                                        color: _selectedItemType == ItemType.PRODUCT
+                                            ? AppTheme.white
+                                            : AppTheme.textSecondaryColor,
+                                      ),
+                                      label: const Text('Physical Product'),
+                                      labelStyle: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: _selectedItemType == ItemType.PRODUCT
+                                            ? AppTheme.white
+                                            : AppTheme.textSecondaryColor,
+                                      ),
+                                      backgroundColor: AppTheme.surfaceColor,
+                                      selectedColor: AppTheme.brandColor,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                                        side: BorderSide(
+                                          color: _selectedItemType == ItemType.PRODUCT
+                                              ? AppTheme.brandColor
+                                              : AppTheme.borderColor,
+                                        ),
+                                      ),
+                                      onSelected: (val) {
+                                        setState(() {
+                                          _selectedItemType = ItemType.PRODUCT;
+                                        });
+                                      },
+                                    ),
                                   ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                                    borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.8),
-                                  ),
-                                ),
-                                dropdownColor: AppTheme.surfaceColor,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  color: AppTheme.textPrimaryColor,
-                                ),
-                                items: RentalUnitType.values.map((type) {
-                                  return DropdownMenuItem(
-                                    value: type,
-                                    child: Text(typeNames[type] ?? 'Unit'),
-                                  );
-                                }).toList(),
-                                onChanged: (val) {
-                                  if (val != null) {
-                                    setState(() {
-                                      _selectedType = val;
-                                    });
-                                  }
-                                },
+                                ],
                               ),
                             ],
                           ),
                           const SizedBox(height: AppTheme.space16),
 
-                          // Price Per Day (Rands) & Capacity Row
-                          Row(
-                            children: [
-                              Expanded(
-                                flex: 3,
-                                child: BkTextField(
-                                  controller: _priceController,
-                                  label: 'Price Per Day (ZAR)',
-                                  hintText: 'e.g. 150.00',
-                                  prefixIcon: Icons.payments_outlined,
-                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  textInputAction: TextInputAction.next,
-                                  validator: (val) {
-                                    if (val == null || val.trim().isEmpty) {
-                                      return 'Required';
-                                    }
-                                    final price = double.tryParse(val);
-                                    if (price == null || price <= 0) {
-                                      return 'Invalid';
-                                    }
-                                    return null;
-                                  },
+                          // Name
+                          BkTextField(
+                            controller: _nameController,
+                            label: 'Title / Item Name',
+                            hintText: _selectedItemType == ItemType.SERVICE
+                                ? 'e.g. Fade Haircut, Plumbing Callout, Catering Setup'
+                                : 'e.g. Wedding Cake, Sneakers, VIP Portable Toilet',
+                            prefixIcon: _selectedItemType == ItemType.SERVICE
+                                ? Icons.handyman_outlined
+                                : Icons.shopping_bag_outlined,
+                            textInputAction: TextInputAction.next,
+                            validator: (val) =>
+                                val == null || val.trim().isEmpty ? 'Item name is required' : null,
+                          ),
+                          const SizedBox(height: AppTheme.space16),
+
+                          // Pricing Container
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppTheme.backgroundColor,
+                              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                              border: Border.all(color: AppTheme.borderColor),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Price on Request / Custom Quote',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppTheme.textPrimaryColor,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Customer will discuss pricing on WhatsApp',
+                                          style: TextStyle(fontSize: 11, color: AppTheme.textSecondaryColor),
+                                        ),
+                                      ],
+                                    ),
+                                    Switch(
+                                      value: _isPriceOnRequest,
+                                      activeColor: AppTheme.brandColor,
+                                      onChanged: (val) {
+                                        setState(() {
+                                          _isPriceOnRequest = val;
+                                        });
+                                      },
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              const SizedBox(width: AppTheme.space12),
-                              Expanded(
-                                flex: 2,
-                                child: BkTextField(
-                                  controller: _capacityController,
-                                  label: 'Capacity',
-                                  hintText: 'e.g. 1',
-                                  prefixIcon: Icons.people_outline,
-                                  keyboardType: TextInputType.number,
-                                  textInputAction: TextInputAction.next,
-                                  validator: (val) {
-                                    if (val == null || val.trim().isEmpty) {
-                                      return 'Required';
-                                    }
-                                    final cap = int.tryParse(val);
-                                    if (cap == null || cap <= 0) {
-                                      return 'Invalid';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                            ],
+                                if (!_isPriceOnRequest) ...[
+                                  const SizedBox(height: 12),
+                                  const Divider(color: AppTheme.borderColor),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        flex: 3,
+                                        child: BkTextField(
+                                          controller: _priceController,
+                                          label: 'Price (ZAR)',
+                                          hintText: 'e.g. 150.00',
+                                          prefixIcon: Icons.payments_outlined,
+                                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                          textInputAction: TextInputAction.next,
+                                          validator: (val) {
+                                            if (_isPriceOnRequest) return null;
+                                            if (val == null || val.trim().isEmpty) {
+                                              return 'Required';
+                                            }
+                                            final price = double.tryParse(val);
+                                            if (price == null || price <= 0) {
+                                              return 'Invalid price';
+                                            }
+                                            return null;
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: AppTheme.space12),
+                                      Expanded(
+                                        flex: 2,
+                                        child: BkTextField(
+                                          controller: _priceUnitController,
+                                          label: 'Unit (Optional)',
+                                          hintText: 'e.g. per day, each',
+                                          prefixIcon: Icons.straighten_outlined,
+                                          textInputAction: TextInputAction.next,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.space16),
+
+                          // Description
+                          BkTextField(
+                            controller: _descController,
+                            label: 'Description (Optional)',
+                            hintText: 'Describe turnaround times, package details, materials, or special offers...',
+                            prefixIcon: Icons.description_outlined,
+                            maxLines: 3,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _save(),
                           ),
                           const SizedBox(height: AppTheme.space16),
 
@@ -614,26 +719,13 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
                             const SizedBox(height: AppTheme.space16),
                           ],
 
-                          // Description
-                          BkTextField(
-                            controller: _descController,
-                            label: 'Description (Optional)',
-                            hintText: 'Describe features, dimensions, sanitation schedule...',
-                            prefixIcon: Icons.description_outlined,
-                            maxLines: 3,
-                            textInputAction: TextInputAction.done,
-                            onFieldSubmitted: (_) => _save(),
-                          ),
-                          const SizedBox(height: AppTheme.space24),
-
-                          // Error Message Banner
                           if (_errorMessage != null) ...[
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              padding: const EdgeInsets.all(AppTheme.space12),
                               decoration: BoxDecoration(
                                 color: AppTheme.errorColor.withOpacity(0.08),
-                                borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                                border: Border.all(color: AppTheme.errorColor.withOpacity(0.25)),
+                                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                                border: Border.all(color: AppTheme.errorColor.withOpacity(0.3)),
                               ),
                               child: Row(
                                 children: [
@@ -657,7 +749,7 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
 
                           // Save Action Button
                           BkPrimaryButton(
-                            label: isEditMode ? 'Save Unit Specifications' : 'Register Unit',
+                            label: isEditMode ? 'Save Catalogue Item' : 'Add to Catalogue',
                             isLoading: isLoading || _isUploadingPhoto,
                             onPressed: _save,
                           ),

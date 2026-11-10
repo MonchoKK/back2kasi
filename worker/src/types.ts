@@ -1,11 +1,26 @@
-export type BusinessType = 'TOILET_RENTAL' | 'COLD_ROOM_RENTAL';
+export type BusinessCategory =
+  | 'BEAUTY'
+  | 'FOOD'
+  | 'AUTOMOTIVE'
+  | 'RETAIL'
+  | 'HOME_SERVICES'
+  | 'EVENTS_RENTALS';
+
+export type BusinessType =
+  | 'TOILET_RENTAL'
+  | 'COLD_ROOM_RENTAL'
+  | BusinessCategory;
+
+export type CatalogueItemType = 'PRODUCT' | 'SERVICE';
 
 export type RentalUnitType =
   | 'STANDARD_TOILET'
   | 'VIP_TOILET'
   | 'CHEMICAL_TOILET'
   | 'STANDARD_COLD_ROOM'
-  | 'MOBILE_COLD_ROOM';
+  | 'MOBILE_COLD_ROOM'
+  | 'GENERAL_PRODUCT'
+  | 'GENERAL_SERVICE';
 
 export type RentalUnitStatus = 'AVAILABLE' | 'RENTED' | 'UNDER_MAINTENANCE';
 
@@ -56,6 +71,8 @@ export interface BusinessRow {
   address: string;
   phone_number: string;
   business_type: BusinessType;
+  category?: string;
+  is_verified?: number;
   owner_id: number;
   whatsapp_number?: string | null;
   whatsapp_enabled?: number;
@@ -70,9 +87,13 @@ export interface RentalUnitRow {
   description: string | null;
   price_per_day: number;
   capacity: number;
-  rental_unit_type: RentalUnitType;
+  rental_unit_type: RentalUnitType | string;
   status: RentalUnitStatus;
   business_id: number;
+  item_type?: string;
+  is_price_on_request?: number;
+  price_unit?: string | null;
+  price?: number;
   created_at: string;
   updated_at: string;
 }
@@ -117,6 +138,8 @@ export interface BusinessResponse {
   address: string;
   phoneNumber: string;
   businessType: BusinessType;
+  category: string;
+  isVerified: boolean;
   ownerId: number;
   whatsappNumber?: string | null;
   whatsappEnabled?: boolean;
@@ -168,8 +191,12 @@ export interface RentalUnitResponse {
   name: string;
   description: string | null;
   pricePerDay: number;
+  price: number;
+  isPriceOnRequest: boolean;
+  priceUnit: string | null;
+  itemType: CatalogueItemType;
   capacity: number;
-  rentalUnitType: RentalUnitType;
+  rentalUnitType: RentalUnitType | string;
   status: RentalUnitStatus;
   businessId: number;
   images?: RentalUnitImageResponse[];

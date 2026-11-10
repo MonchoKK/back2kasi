@@ -97,7 +97,7 @@ class BkPriceDisplay extends StatelessWidget {
       textBaseline: TextBaseline.alphabetic,
       children: [
         Text(
-          'R${pricePerDay.toStringAsFixed(0)}',
+          'R ${pricePerDay.toStringAsFixed(pricePerDay % 1 == 0 ? 0 : 2)}',
           style: TextStyle(
             color: color ?? AppTheme.brandColor,
             fontWeight: FontWeight.bold,

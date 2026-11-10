@@ -32,6 +32,10 @@ class BkCatalogueCard extends StatelessWidget {
         return 'Mobile Cold Room';
       case RentalUnitType.STANDARD_COLD_ROOM:
         return 'Standard Cold Room';
+      case RentalUnitType.GENERAL_PRODUCT:
+        return 'Product';
+      case RentalUnitType.GENERAL_SERVICE:
+        return 'Service';
     }
   }
 

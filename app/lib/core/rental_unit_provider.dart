@@ -89,15 +89,19 @@ class RentalUnitProvider extends ChangeNotifier {
   }
 
   /**
-   * Register a new rental unit.
+   * Register a new catalogue item (product or service).
    */
   Future<void> createRentalUnit({
     required int businessId,
     required String name,
     String? description,
     required double pricePerDay,
-    required int capacity,
-    required RentalUnitType type,
+    double? price,
+    bool isPriceOnRequest = false,
+    String? priceUnit,
+    ItemType itemType = ItemType.SERVICE,
+    int capacity = 1,
+    RentalUnitType type = RentalUnitType.GENERAL_SERVICE,
     required String token,
   }) async {
     _setLoading(true);
@@ -115,6 +119,10 @@ class RentalUnitProvider extends ChangeNotifier {
           'name': name,
           'description': description,
           'pricePerDay': pricePerDay,
+          'price': price ?? pricePerDay,
+          'isPriceOnRequest': isPriceOnRequest,
+          'priceUnit': priceUnit,
+          'itemType': itemType.toString().split('.').last,
           'capacity': capacity,
           'rentalUnitType': type.toString().split('.').last,
         }),
@@ -133,13 +141,13 @@ class RentalUnitProvider extends ChangeNotifier {
           final Map<String, dynamic> errors = responseBody['fieldErrors'];
           _errorMessage = errors.values.join(', ');
         } else {
-          _errorMessage = responseBody['message'] ?? 'Failed to create unit';
+          _errorMessage = responseBody['message'] ?? 'Failed to create item';
         }
         throw Exception(_errorMessage);
       }
     } catch (e) {
       if (_errorMessage == null) {
-        _errorMessage = 'Connection error: unable to save unit';
+        _errorMessage = 'Connection error: unable to save item';
       }
       rethrow;
     } finally {
@@ -148,7 +156,7 @@ class RentalUnitProvider extends ChangeNotifier {
   }
 
   /**
-   * Update an existing rental unit profile (including status transitions).
+   * Update an existing catalogue item profile.
    */
   Future<void> updateRentalUnit(
     int id, {
@@ -156,8 +164,12 @@ class RentalUnitProvider extends ChangeNotifier {
     required String name,
     String? description,
     required double pricePerDay,
-    required int capacity,
-    required RentalUnitType type,
+    double? price,
+    bool isPriceOnRequest = false,
+    String? priceUnit,
+    ItemType itemType = ItemType.SERVICE,
+    int capacity = 1,
+    RentalUnitType type = RentalUnitType.GENERAL_SERVICE,
     required RentalUnitStatus status,
     required String token,
   }) async {
@@ -175,6 +187,10 @@ class RentalUnitProvider extends ChangeNotifier {
           'name': name,
           'description': description,
           'pricePerDay': pricePerDay,
+          'price': price ?? pricePerDay,
+          'isPriceOnRequest': isPriceOnRequest,
+          'priceUnit': priceUnit,
+          'itemType': itemType.toString().split('.').last,
           'capacity': capacity,
           'rentalUnitType': type.toString().split('.').last,
           'status': status.toString().split('.').last,
@@ -195,13 +211,13 @@ class RentalUnitProvider extends ChangeNotifier {
           final Map<String, dynamic> errors = responseBody['fieldErrors'];
           _errorMessage = errors.values.join(', ');
         } else {
-          _errorMessage = responseBody['message'] ?? 'Failed to update unit';
+          _errorMessage = responseBody['message'] ?? 'Failed to update item';
         }
         throw Exception(_errorMessage);
       }
     } catch (e) {
       if (_errorMessage == null) {
-        _errorMessage = 'Connection error: unable to update unit';
+        _errorMessage = 'Connection error: unable to update item';
       }
       rethrow;
     } finally {

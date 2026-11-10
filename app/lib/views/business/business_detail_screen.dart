@@ -215,7 +215,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Rental Units Inventory',
+                  'Catalogue Items',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -264,18 +264,18 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
           Expanded(
             child: isLoading && units.isEmpty
-                ? const BkLoadingIndicator(message: 'Loading rental units...')
+                ? const BkLoadingIndicator(message: 'Loading catalogue...')
                 : RefreshIndicator(
                     color: AppTheme.brandColor,
                     onRefresh: () async => _loadData(),
                     child: filteredUnits.isEmpty
                         ? BkEmptyState(
-                            icon: Icons.wc_outlined,
-                            title: 'No units found',
+                            icon: Icons.inventory_2_outlined,
+                            title: 'No items found',
                             message: _statusFilter != null
-                                ? 'No rental units match this status filter.'
-                                : 'Add standard toilets, VIP trailers, or cold rooms to display them to customers.',
-                            actionLabel: _statusFilter != null ? 'Show All Units' : 'Add Rental Unit',
+                                ? 'No catalogue items match this status filter.'
+                                : 'Add your products or services to display them to customers and receive direct WhatsApp enquiries.',
+                            actionLabel: _statusFilter != null ? 'Show All Items' : 'Add Item',
                             onAction: () {
                               if (_statusFilter != null) {
                                 setState(() {
@@ -306,7 +306,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppTheme.brandColor,
         foregroundColor: AppTheme.white,
-        tooltip: 'Add Rental Unit',
+        tooltip: 'Add Catalogue Item',
         elevation: 3,
         onPressed: () {
           Navigator.push(
@@ -342,17 +342,39 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                   color: AppTheme.brandColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                 ),
-                child: const Icon(Icons.storefront, color: AppTheme.brandColor, size: 22),
+                child: Icon(widget.business.category.icon, color: AppTheme.brandColor, size: 22),
               ),
               const SizedBox(width: 10),
-              Text(
-                widget.business.businessType == BusinessType.TOILET_RENTAL
-                    ? 'Sanitation & Toilet Rental Agency'
-                    : 'Cold Storage Rental Provider',
-                style: const TextStyle(
-                  color: AppTheme.brandColor,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.business.category.displayName,
+                      style: const TextStyle(
+                        color: AppTheme.brandColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (widget.business.isVerified) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: const [
+                          Icon(Icons.verified, size: 13, color: AppTheme.accentColor),
+                          SizedBox(width: 4),
+                          Text(
+                            'Verified Kasi Business',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.accentColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],
@@ -451,7 +473,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
         break;
     }
 
-    final String typeLabel = unit.rentalUnitType.toString().split('.').last.replaceAll('_', ' ');
+    final isProduct = unit.itemType == ItemType.PRODUCT;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -495,6 +517,25 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                   children: [
                     Row(
                       children: [
+                        // Product vs Service Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: isProduct
+                                ? const Color(0xFF3B82F6).withOpacity(0.12)
+                                : AppTheme.accentColor.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+                          ),
+                          child: Text(
+                            isProduct ? 'Product' : 'Service',
+                            style: TextStyle(
+                              color: isProduct ? const Color(0xFF2563EB) : const Color(0xFFD97706),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
@@ -505,11 +546,6 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                             statusLabel,
                             style: TextStyle(color: badgeFg, fontSize: 11, fontWeight: FontWeight.bold),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          typeLabel,
-                          style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 12),
                         ),
                         const Spacer(),
                         if (unit.images.isNotEmpty)
@@ -562,7 +598,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                 children: [
                                   Icon(Icons.delete_outline, size: 18, color: AppTheme.errorColor),
                                   SizedBox(width: 8),
-                                  Text('Delete Unit', style: TextStyle(color: AppTheme.errorColor)),
+                                  Text('Delete Item', style: TextStyle(color: AppTheme.errorColor)),
                                 ],
                               ),
                             ),
@@ -589,16 +625,33 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const Icon(Icons.people_outline, size: 16, color: AppTheme.textSecondaryColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Capacity: ${unit.capacity}',
-                          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
-                        ),
+                        if (unit.capacity > 0) ...[
+                          const Icon(Icons.people_outline, size: 16, color: AppTheme.textSecondaryColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Capacity: ${unit.capacity}',
+                            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
+                          ),
+                        ] else ...[
+                          Icon(
+                            isProduct ? Icons.inventory_2_outlined : Icons.handyman_outlined,
+                            size: 15,
+                            color: AppTheme.textSecondaryColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isProduct ? 'Item for Sale / Hire' : 'Service by Quote / Booking',
+                            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
+                          ),
+                        ],
                         const Spacer(),
-                        BkPriceDisplay(
-                          pricePerDay: unit.pricePerDay,
-                          fontSize: 16,
+                        Text(
+                          unit.formattedPrice,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.brandColor,
+                          ),
                         ),
                       ],
                     ),

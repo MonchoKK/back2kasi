@@ -287,8 +287,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: AppTheme.space20),
 
                     // Back to Login Link
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         const Text(
                           'Already have an account? ',

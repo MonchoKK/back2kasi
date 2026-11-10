@@ -74,7 +74,7 @@ class _CustomerBusinessDetailScreenState extends State<CustomerBusinessDetailScr
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Text(
-              'Available Inventory',
+              'Products & Services',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -134,17 +134,50 @@ class _CustomerBusinessDetailScreenState extends State<CustomerBusinessDetailScr
                   color: AppTheme.brandColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                 ),
-                child: const Icon(Icons.storefront, color: AppTheme.brandColor, size: 22),
+                child: Icon(widget.business.category.icon, color: AppTheme.brandColor, size: 22),
               ),
               const SizedBox(width: 10),
-              Text(
-                widget.business.businessType == BusinessType.TOILET_RENTAL
-                    ? 'Sanitation & Toilet Rental'
-                    : 'Cold Storage Provider',
-                style: const TextStyle(
-                  color: AppTheme.brandColor,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        widget.business.category.displayName,
+                        style: const TextStyle(
+                          color: AppTheme.brandColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (widget.business.isVerified) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.accentColor.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: AppTheme.accentColor.withOpacity(0.4), width: 0.8),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.verified, size: 11, color: Color(0xFFB45309)),
+                            SizedBox(width: 3),
+                            Text(
+                              'Verified',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFB45309),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],
@@ -215,8 +248,6 @@ class _CustomerBusinessDetailScreenState extends State<CustomerBusinessDetailScr
   }
 
   Widget _buildUnitCard(RentalUnit unit) {
-    final String typeLabel = unit.rentalUnitType.toString().split('.').last.replaceAll('_', ' ');
-
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -264,15 +295,10 @@ class _CustomerBusinessDetailScreenState extends State<CustomerBusinessDetailScr
                         color: AppTheme.brandColor.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(AppTheme.radiusPill),
                       ),
-                      child: const Text(
-                        'Available',
-                        style: TextStyle(color: AppTheme.brandColor, fontSize: 11, fontWeight: FontWeight.bold),
+                      child: Text(
+                        unit.isProduct ? 'Product' : 'Service',
+                        style: const TextStyle(color: AppTheme.brandColor, fontSize: 11, fontWeight: FontWeight.bold),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      typeLabel,
-                      style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 12),
                     ),
                     const Spacer(),
                     if (unit.images.isNotEmpty)
@@ -307,16 +333,24 @@ class _CustomerBusinessDetailScreenState extends State<CustomerBusinessDetailScr
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.people_outline, size: 16, color: AppTheme.textSecondaryColor),
-                    const SizedBox(width: 4),
+                    Icon(
+                      unit.isProduct ? Icons.inventory_2_outlined : Icons.build_outlined,
+                      size: 16,
+                      color: AppTheme.textSecondaryColor,
+                    ),
+                    const SizedBox(width: 6),
                     Text(
-                      'Capacity: ${unit.capacity}',
+                      unit.isProduct ? 'Physical Item' : 'Service Offering',
                       style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
                     ),
                     const Spacer(),
-                    BkPriceDisplay(
-                      pricePerDay: unit.pricePerDay,
-                      fontSize: 17,
+                    Text(
+                      unit.formattedPrice,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.brandColor,
+                      ),
                     ),
                   ],
                 ),
@@ -350,6 +384,7 @@ class _CustomerBusinessDetailScreenState extends State<CustomerBusinessDetailScr
                           final phone = widget.business.whatsappNumber ?? widget.business.phoneNumber;
                           final msg = ContactHelper.buildCatalogueItemMessage(
                             itemName: unit.name,
+                            isProduct: unit.isProduct,
                           );
                           ContactHelper.launchWhatsApp(context, phone: phone, message: msg);
                         },

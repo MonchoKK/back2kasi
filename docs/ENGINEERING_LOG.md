@@ -1,6 +1,6 @@
 # Back2Kasi Engineering Log
 
-> **Last Updated:** 2026-11-10 | **Current Sprint:** Sprint 31 – Revised Marketplace Specification (Direct WhatsApp Model)
+> **Last Updated:** 2026-11-10 | **Current Sprint:** Sprint 32 – Multi-Sector Township Marketplace (Universal Products & Services)
 
 ---
 
@@ -19,6 +19,7 @@
 | Sprint 29 – Emerald + Warm Ivory Redesign | Emerald + Warm Ivory + Charcoal + Gold identity, shared Bk* library | ✅ Complete | [Sprint-29-Emerald-Warm-Ivory-Redesign.md](Engineering-Logs/Sprint-29-Emerald-Warm-Ivory-Redesign.md) |
 | Sprint 30 – WhatsApp & Business Contact | Booking-gated WhatsApp Click-to-Chat, D1 migration, SA local 0XXXXXXXXX format, bidirectional contact | ✅ Complete | [Sprint-30-WhatsApp-Booking-Gated-Contact.md](Engineering-Logs/Sprint-30-WhatsApp-Booking-Gated-Contact.md) |
 | Sprint 31 – Revised Marketplace Specification | Direct WhatsApp enquiry model, decoupled booking flow, canonical enquiry templates | ✅ Complete | [Sprint-31-Revised-Marketplace-Direct-WhatsApp.md](Engineering-Logs/Sprint-31-Revised-Marketplace-Direct-WhatsApp.md) |
+| Sprint 32 – Multi-Sector Marketplace | One marketplace, many businesses (Beauty, Food, Auto, Retail, Home, Events), Product vs Service, Verified Kasi Business badge | ✅ Complete | [Sprint-32-Multi-Sector-Marketplace.md](Engineering-Logs/Sprint-32-Multi-Sector-Marketplace.md) |
 
 ---
 

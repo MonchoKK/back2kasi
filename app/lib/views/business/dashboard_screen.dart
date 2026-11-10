@@ -111,7 +111,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return BkEmptyState(
       icon: Icons.storefront_outlined,
       title: 'Register Your Business',
-      message: 'Register your toilet hire or cold room rental business to start receiving customer enquiries.',
+      message: 'Register your business (salon, bakery, workshop, retail, services, or rentals) to start receiving customer enquiries.',
       actionLabel: 'Register Business',
       onAction: () async {
         await Navigator.push(
@@ -177,13 +177,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     items: myBusinesses.map((Business b) {
                       return DropdownMenuItem<Business>(
                         value: b,
-                        child: Text(
-                          b.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                            color: AppTheme.textPrimaryColor,
-                          ),
+                        child: Row(
+                          children: [
+                            Text(b.category.emoji, style: const TextStyle(fontSize: 16)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                b.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: AppTheme.textPrimaryColor,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppTheme.brandColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+                              ),
+                              child: Text(
+                                b.category.shortName,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.brandColor,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     }).toList(),
@@ -223,7 +248,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Live Inventory Preview',
+              'Live Catalogue Preview',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -242,7 +267,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 _loadDashboardData();
               },
               icon: const Icon(Icons.add, size: 16),
-              label: const Text('Add Unit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              label: const Text('Add Item', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
               style: TextButton.styleFrom(foregroundColor: AppTheme.brandColor),
             ),
           ],
@@ -274,12 +299,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'No units listed yet',
+                        'No catalogue items listed yet',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimaryColor),
                       ),
                       SizedBox(height: 2),
                       Text(
-                        'Add your toilets or cold storage to display in your public catalogue.',
+                        'Add your products or services to display in your public catalogue.',
                         style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 12),
                       ),
                     ],
@@ -333,10 +358,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 width: double.infinity,
                                 height: 68,
                                 fit: BoxFit.cover,
-                                fallbackIcon: unit.rentalUnitType == RentalUnitType.STANDARD_COLD_ROOM ||
-                                        unit.rentalUnitType == RentalUnitType.MOBILE_COLD_ROOM
-                                    ? Icons.ac_unit
-                                    : Icons.wc,
+                                fallbackIcon: unit.itemType == ItemType.PRODUCT
+                                    ? Icons.inventory_2_outlined
+                                    : Icons.handyman_outlined,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -354,12 +378,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  'R ${unit.pricePerDay.toStringAsFixed(0)}/d',
-                                  style: const TextStyle(
-                                    color: AppTheme.brandColor,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11,
+                                Expanded(
+                                  child: Text(
+                                    unit.formattedPrice,
+                                    style: const TextStyle(
+                                      color: AppTheme.brandColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 Row(
@@ -416,7 +444,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _buildActionButton(
           label: 'Manage Catalogue & Photos',
           icon: Icons.inventory_2_outlined,
-          subtitle: '${rentalUnits.length} equipment units listed',
+          subtitle: '${rentalUnits.length} catalogue items listed',
           onTap: () async {
             await Navigator.push(
               context,

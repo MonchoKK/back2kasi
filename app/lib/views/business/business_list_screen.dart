@@ -127,8 +127,8 @@ class _BusinessListScreenState extends State<BusinessListScreen> {
                         ? BkEmptyState(
                             icon: Icons.storefront_outlined,
                             title: 'No businesses registered yet',
-                            subtitle:
-                                'List your portable toilets or cold rooms business profile to start renting out units.',
+                            message:
+                                'List your business profile (beauty, food, automotive, retail, construction, or rentals) to start receiving customer enquiries.',
                             actionLabel: 'Register Business',
                             onAction: () {
                               Navigator.push(

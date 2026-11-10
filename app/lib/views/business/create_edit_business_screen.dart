@@ -32,7 +32,7 @@ class _CreateEditBusinessScreenState extends State<CreateEditBusinessScreen> {
   late TextEditingController _whatsappController;
   late TextEditingController _whatsappMessageController;
   late bool _whatsappEnabled;
-  late BusinessType _selectedType;
+  late BusinessCategory _selectedCategory;
 
   String? _errorMessage;
 
@@ -52,7 +52,7 @@ class _CreateEditBusinessScreenState extends State<CreateEditBusinessScreen> {
       text: widget.business?.whatsappMessage ?? '',
     );
     _whatsappEnabled = widget.business?.whatsappEnabled ?? false;
-    _selectedType = widget.business?.businessType ?? BusinessType.TOILET_RENTAL;
+    _selectedCategory = widget.business?.category ?? BusinessCategory.EVENTS_RENTALS;
   }
 
   @override
@@ -92,7 +92,7 @@ class _CreateEditBusinessScreenState extends State<CreateEditBusinessScreen> {
           description: _descController.text.trim(),
           address: _addressController.text.trim(),
           phoneNumber: _phoneController.text.trim(),
-          type: _selectedType,
+          category: _selectedCategory,
           whatsappNumber: whatsappNum,
           whatsappEnabled: _whatsappEnabled,
           whatsappMessage: welcomeMsg,
@@ -104,7 +104,7 @@ class _CreateEditBusinessScreenState extends State<CreateEditBusinessScreen> {
           description: _descController.text.trim(),
           address: _addressController.text.trim(),
           phoneNumber: _phoneController.text.trim(),
-          type: _selectedType,
+          category: _selectedCategory,
           whatsappNumber: whatsappNum,
           whatsappEnabled: _whatsappEnabled,
           whatsappMessage: welcomeMsg,
@@ -255,8 +255,8 @@ class _CreateEditBusinessScreenState extends State<CreateEditBusinessScreen> {
                                 ),
                               ),
                               const SizedBox(height: AppTheme.space8),
-                              DropdownButtonFormField<BusinessType>(
-                                value: _selectedType,
+                              DropdownButtonFormField<BusinessCategory>(
+                                value: _selectedCategory,
                                 decoration: InputDecoration(
                                   prefixIcon: const Icon(
                                     Icons.category_outlined,
@@ -280,20 +280,22 @@ class _CreateEditBusinessScreenState extends State<CreateEditBusinessScreen> {
                                   fontSize: 15,
                                   color: AppTheme.textPrimaryColor,
                                 ),
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: BusinessType.TOILET_RENTAL,
-                                    child: Text('Toilet Hire Services'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: BusinessType.COLD_ROOM_RENTAL,
-                                    child: Text('Cold Storage Services'),
-                                  ),
-                                ],
+                                items: BusinessCategory.values.map((cat) {
+                                  return DropdownMenuItem<BusinessCategory>(
+                                    value: cat,
+                                    child: Row(
+                                      children: [
+                                        Text(cat.emoji, style: const TextStyle(fontSize: 16)),
+                                        const SizedBox(width: 8),
+                                        Text(cat.displayName),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
                                 onChanged: (val) {
                                   if (val != null) {
                                     setState(() {
-                                      _selectedType = val;
+                                      _selectedCategory = val;
                                     });
                                   }
                                 },

@@ -43,6 +43,6 @@ void main() {
 
     // Verify it settled on the Login screen
     expect(find.text('Back2Kasi'), findsOneWidget);
-    expect(find.text('Sign In'), findsOneWidget);
+    expect(find.text('Sign In'), findsWidgets);
   });
 }

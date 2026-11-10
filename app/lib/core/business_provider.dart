@@ -61,15 +61,19 @@ class BusinessProvider extends ChangeNotifier {
   }
 
   /**
-   * Fetch all registered businesses on the platform (public browse).
+   * Fetch all registered businesses on the platform (public browse), optionally filtered by category.
    */
-  Future<void> fetchAllBusinesses(String token) async {
+  Future<void> fetchAllBusinesses(String token, {String? category}) async {
     _setLoading(true);
     _errorMessage = null;
 
     try {
+      final uri = category != null && category.isNotEmpty && category != 'ALL'
+          ? Uri.parse('${ApiConfig.businesses}?category=$category')
+          : Uri.parse(ApiConfig.businesses);
+
       final response = await http.get(
-        Uri.parse(ApiConfig.businesses),
+        uri,
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -91,14 +95,15 @@ class BusinessProvider extends ChangeNotifier {
   }
 
   /**
-   * Register a new business profile.
+   * Register a new business profile across any category.
    */
   Future<void> createBusiness({
     required String name,
     String? description,
     required String address,
     required String phoneNumber,
-    required BusinessType type,
+    BusinessType type = BusinessType.TOILET_RENTAL,
+    BusinessCategory? category,
     String? whatsappNumber,
     bool whatsappEnabled = false,
     String? whatsappMessage,
@@ -108,6 +113,7 @@ class BusinessProvider extends ChangeNotifier {
     _errorMessage = null;
 
     try {
+      final effectiveCategory = category ?? BusinessCategory.EVENTS_RENTALS;
       final response = await http.post(
         Uri.parse(ApiConfig.businesses),
         headers: {
@@ -119,7 +125,8 @@ class BusinessProvider extends ChangeNotifier {
           'description': description,
           'address': address,
           'phoneNumber': phoneNumber,
-          'businessType': type.toString().split('.').last,
+          'businessType': effectiveCategory.key,
+          'category': effectiveCategory.key,
           'whatsappNumber': whatsappNumber,
           'whatsappEnabled': whatsappEnabled,
           'whatsappMessage': whatsappMessage,
@@ -159,7 +166,8 @@ class BusinessProvider extends ChangeNotifier {
     String? description,
     required String address,
     required String phoneNumber,
-    required BusinessType type,
+    BusinessType type = BusinessType.TOILET_RENTAL,
+    BusinessCategory? category,
     String? whatsappNumber,
     bool? whatsappEnabled,
     String? whatsappMessage,
@@ -169,12 +177,14 @@ class BusinessProvider extends ChangeNotifier {
     _errorMessage = null;
 
     try {
+      final effectiveCategory = category ?? BusinessCategory.EVENTS_RENTALS;
       final Map<String, dynamic> payload = {
         'name': name,
         'description': description,
         'address': address,
         'phoneNumber': phoneNumber,
-        'businessType': type.toString().split('.').last,
+        'businessType': effectiveCategory.key,
+        'category': effectiveCategory.key,
       };
 
       if (whatsappNumber != null) {

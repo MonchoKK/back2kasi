@@ -64,22 +64,18 @@ class _BrowseScreenState extends State<BrowseScreen> {
     context.read<RentalUnitProvider>().fetchAllAvailableUnits();
   }
 
-  List<RentalUnit> _filterUnits(List<RentalUnit> units) {
+  List<RentalUnit> _filterUnits(List<RentalUnit> units, List<Business> businesses) {
+    final businessMap = {for (var b in businesses) b.id: b};
+
     return units.where((unit) {
       // Category filter
       if (_selectedCategory != 'ALL') {
-        if (_selectedCategory == 'VIP_TOILET' && unit.rentalUnitType != RentalUnitType.VIP_TOILET) {
-          return false;
-        }
-        if (_selectedCategory == 'STANDARD_TOILET' && unit.rentalUnitType != RentalUnitType.STANDARD_TOILET) {
-          return false;
-        }
-        if (_selectedCategory == 'CHEMICAL_TOILET' && unit.rentalUnitType != RentalUnitType.CHEMICAL_TOILET) {
-          return false;
-        }
-        if (_selectedCategory == 'COLD_ROOM' &&
-            unit.rentalUnitType != RentalUnitType.STANDARD_COLD_ROOM &&
-            unit.rentalUnitType != RentalUnitType.MOBILE_COLD_ROOM) {
+        final biz = businessMap[unit.businessId];
+        if (biz != null) {
+          if (biz.category.key != _selectedCategory) {
+            return false;
+          }
+        } else if (_selectedCategory != 'EVENTS_RENTALS') {
           return false;
         }
       }
@@ -89,7 +85,9 @@ class _BrowseScreenState extends State<BrowseScreen> {
         final nameMatch = unit.name.toLowerCase().contains(_searchQuery);
         final descMatch = unit.description?.toLowerCase().contains(_searchQuery) ?? false;
         final typeMatch = unit.rentalUnitType.toString().toLowerCase().contains(_searchQuery);
-        if (!nameMatch && !descMatch && !typeMatch) return false;
+        final itemTypeMatch = (unit.isProduct ? 'product' : 'service').contains(_searchQuery);
+        final priceMatch = unit.formattedPrice.toLowerCase().contains(_searchQuery);
+        if (!nameMatch && !descMatch && !typeMatch && !itemTypeMatch && !priceMatch) return false;
       }
 
       return true;
@@ -99,14 +97,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
   List<Business> _filterBusinesses(List<Business> businesses) {
     return businesses.where((business) {
       if (_selectedCategory != 'ALL') {
-        if (_selectedCategory == 'COLD_ROOM' &&
-            business.businessType != BusinessType.COLD_ROOM_RENTAL) {
-          return false;
-        }
-        if ((_selectedCategory == 'VIP_TOILET' ||
-                _selectedCategory == 'STANDARD_TOILET' ||
-                _selectedCategory == 'CHEMICAL_TOILET') &&
-            business.businessType != BusinessType.TOILET_RENTAL) {
+        if (business.category.key != _selectedCategory) {
           return false;
         }
       }
@@ -115,7 +106,8 @@ class _BrowseScreenState extends State<BrowseScreen> {
         final nameMatch = business.name.toLowerCase().contains(_searchQuery);
         final descMatch = business.description?.toLowerCase().contains(_searchQuery) ?? false;
         final addrMatch = business.address.toLowerCase().contains(_searchQuery);
-        if (!nameMatch && !descMatch && !addrMatch) return false;
+        final catMatch = business.category.displayName.toLowerCase().contains(_searchQuery);
+        if (!nameMatch && !descMatch && !addrMatch && !catMatch) return false;
       }
 
       return true;
@@ -128,11 +120,10 @@ class _BrowseScreenState extends State<BrowseScreen> {
     final businessProvider = context.watch<BusinessProvider>();
     final rentalUnitProvider = context.watch<RentalUnitProvider>();
 
-    final userEmail = authService.userEmail ?? 'Client';
     final rawUnits = rentalUnitProvider.allUnits;
     final rawBusinesses = businessProvider.allBusinesses;
 
-    final filteredUnits = _filterUnits(rawUnits);
+    final filteredUnits = _filterUnits(rawUnits, rawBusinesses);
     final filteredBusinesses = _filterBusinesses(rawBusinesses);
 
     final isLoading = businessProvider.isLoading || rentalUnitProvider.isLoading;
@@ -349,7 +340,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
         controller: _searchController,
         style: const TextStyle(color: AppTheme.textPrimaryColor, fontSize: 14),
         decoration: InputDecoration(
-          hintText: 'Search by equipment, class, or township...',
+          hintText: 'Search products, services, or local businesses...',
           hintStyle: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
           prefixIcon: const Icon(Icons.search, color: AppTheme.brandColor, size: 20),
           suffixIcon: _searchQuery.isNotEmpty
@@ -372,10 +363,12 @@ class _BrowseScreenState extends State<BrowseScreen> {
   Widget _buildCategoryPills() {
     final categories = [
       {'key': 'ALL', 'label': 'All Categories', 'icon': Icons.grid_view},
-      {'key': 'VIP_TOILET', 'label': 'VIP Trailers', 'icon': Icons.star_border},
-      {'key': 'STANDARD_TOILET', 'label': 'Standard Toilets', 'icon': Icons.wc},
-      {'key': 'CHEMICAL_TOILET', 'label': 'Chemical Toilets', 'icon': Icons.cleaning_services_outlined},
-      {'key': 'COLD_ROOM', 'label': 'Cold Storage', 'icon': Icons.ac_unit},
+      {'key': 'BEAUTY', 'label': '💇 Beauty & Personal Care', 'icon': Icons.content_cut_outlined},
+      {'key': 'FOOD', 'label': '🍔 Food & Catering', 'icon': Icons.restaurant_outlined},
+      {'key': 'AUTOMOTIVE', 'label': '🚗 Automotive', 'icon': Icons.directions_car_outlined},
+      {'key': 'RETAIL', 'label': '🛍️ Retail & Products', 'icon': Icons.shopping_bag_outlined},
+      {'key': 'HOME_SERVICES', 'label': '🛠️ Home & Construction', 'icon': Icons.home_repair_service_outlined},
+      {'key': 'EVENTS_RENTALS', 'label': '🎪 Events & Rentals', 'icon': Icons.celebration_outlined},
     ];
 
     return SizedBox(
@@ -437,15 +430,15 @@ class _BrowseScreenState extends State<BrowseScreen> {
           Expanded(
             child: _buildTabButton(
               index: 0,
-              label: 'Available Rentals',
+              label: 'Products & Services',
               count: rentalCount,
-              icon: Icons.inventory_2_outlined,
+              icon: Icons.local_offer_outlined,
             ),
           ),
           Expanded(
             child: _buildTabButton(
               index: 1,
-              label: 'Local Providers',
+              label: 'Local Businesses',
               count: providerCount,
               icon: Icons.storefront_outlined,
             ),
@@ -515,8 +508,6 @@ class _BrowseScreenState extends State<BrowseScreen> {
   }
 
   Widget _buildRentalCard(RentalUnit unit, Business? business) {
-    final typeLabel = unit.rentalUnitType.toString().split('.').last.replaceAll('_', ' ');
-
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -567,13 +558,24 @@ class _BrowseScreenState extends State<BrowseScreen> {
                         color: AppTheme.darkColor.withOpacity(0.75),
                         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                       ),
-                      child: Text(
-                        typeLabel,
-                        style: const TextStyle(
-                          color: AppTheme.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            unit.isProduct ? Icons.shopping_bag_outlined : Icons.handyman_outlined,
+                            size: 11,
+                            color: AppTheme.white,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            unit.isProduct ? 'Product' : 'Service',
+                            style: const TextStyle(
+                              color: AppTheme.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -618,9 +620,13 @@ class _BrowseScreenState extends State<BrowseScreen> {
                         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                         boxShadow: AppTheme.cardShadow,
                       ),
-                      child: BkPriceDisplay(
-                        pricePerDay: unit.pricePerDay,
-                        fontSize: 15,
+                      child: Text(
+                        unit.formattedPrice,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.brandColor,
+                        ),
                       ),
                     ),
                   ),
@@ -669,7 +675,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
                     if (business != null)
                       Row(
                         children: [
-                          const Icon(Icons.storefront, size: 14, color: AppTheme.brandColor),
+                          Icon(business.category.icon, size: 14, color: AppTheme.brandColor),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
@@ -688,10 +694,14 @@ class _BrowseScreenState extends State<BrowseScreen> {
 
                     Row(
                       children: [
-                        const Icon(Icons.people_outline, size: 15, color: AppTheme.textSecondaryColor),
+                        Icon(
+                          unit.isProduct ? Icons.inventory_2_outlined : Icons.build_outlined,
+                          size: 15,
+                          color: AppTheme.textSecondaryColor,
+                        ),
                         const SizedBox(width: 4),
                         Text(
-                          'Capacity: ${unit.capacity} units',
+                          unit.isProduct ? 'Product' : 'Service',
                           style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
                         ),
                         const Spacer(),
@@ -725,6 +735,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
                             final phone = targetBusiness.whatsappNumber ?? targetBusiness.phoneNumber;
                             final msg = ContactHelper.buildCatalogueItemMessage(
                               itemName: unit.name,
+                              isProduct: unit.isProduct,
                             );
                             ContactHelper.launchWhatsApp(context, phone: phone, message: msg);
                           },
@@ -753,16 +764,8 @@ class _BrowseScreenState extends State<BrowseScreen> {
   }
 
   Widget _buildBusinessCard(Business business) {
-    IconData businessIcon;
-    String typeLabel;
-
-    if (business.businessType == BusinessType.COLD_ROOM_RENTAL) {
-      businessIcon = Icons.ac_unit;
-      typeLabel = 'Cold Storage Provider';
-    } else {
-      businessIcon = Icons.wc;
-      typeLabel = 'Sanitation & Toilets';
-    }
+    final businessIcon = business.category.icon;
+    final typeLabel = business.category.displayName;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -824,6 +827,35 @@ class _BrowseScreenState extends State<BrowseScreen> {
                                   fontSize: 12,
                                 ),
                               ),
+                              if (business.isVerified) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.accentColor.withOpacity(0.18),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                      color: AppTheme.accentColor.withOpacity(0.4),
+                                      width: 0.8,
+                                    ),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.verified, size: 10, color: Color(0xFFB45309)),
+                                      SizedBox(width: 3),
+                                      Text(
+                                        'Verified',
+                                        style: TextStyle(
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFFB45309),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                               if (business.whatsappEnabled &&
                                   business.whatsappNumber != null &&
                                   business.whatsappNumber!.isNotEmpty) ...[

@@ -18,12 +18,14 @@ export const rentalUnitRoutes = new Hono<{
   Variables: { user: AuthUser };
 }>();
 
-const VALID_UNIT_TYPES: RentalUnitType[] = [
+const VALID_UNIT_TYPES: string[] = [
   'STANDARD_TOILET',
   'VIP_TOILET',
   'CHEMICAL_TOILET',
   'STANDARD_COLD_ROOM',
   'MOBILE_COLD_ROOM',
+  'GENERAL_PRODUCT',
+  'GENERAL_SERVICE',
 ];
 
 const VALID_UNIT_STATUSES: RentalUnitStatus[] = [
@@ -56,13 +58,20 @@ function toRentalUnitResponse(
   const imageResponses = images.map((img) => toImageResponse(img, origin));
   const primary = imageResponses.find((img) => img.isPrimary);
   const primaryImageUrl = primary ? primary.imageUrl : imageResponses.length > 0 ? imageResponses[0].imageUrl : null;
+  const isPriceOnRequest = row.is_price_on_request === 1;
+  const priceVal = row.price !== undefined && row.price !== null ? Number(row.price) : Number(row.price_per_day);
+  const itemType = (row.item_type as any) === 'PRODUCT' ? 'PRODUCT' : 'SERVICE';
 
   return {
     id: row.id,
     name: row.name,
     description: row.description,
-    pricePerDay: Number(row.price_per_day),
-    capacity: row.capacity,
+    pricePerDay: priceVal,
+    price: priceVal,
+    isPriceOnRequest,
+    priceUnit: row.price_unit ?? (itemType === 'PRODUCT' ? null : 'per day'),
+    itemType,
+    capacity: row.capacity ?? 1,
     rentalUnitType: row.rental_unit_type,
     status: row.status,
     businessId: row.business_id,
@@ -163,24 +172,38 @@ rentalUnitRoutes.post('/', requireAuth, async (c) => {
     throw new ValidationError({ body: 'Malformed JSON request body' }, 'Malformed JSON request body');
   }
 
-  const { businessId, name, description, pricePerDay, capacity, rentalUnitType } = body || {};
+  const {
+    businessId,
+    name,
+    description,
+    price,
+    pricePerDay,
+    isPriceOnRequest,
+    priceUnit,
+    itemType,
+    capacity,
+    rentalUnitType,
+  } = body || {};
   const fieldErrors: Record<string, string> = {};
 
   if (businessId === undefined || businessId === null || isNaN(Number(businessId))) {
     fieldErrors.businessId = 'Business ID is required';
   }
   if (!name || typeof name !== 'string' || !name.trim()) {
-    fieldErrors.name = 'Unit name is required';
+    fieldErrors.name = 'Item name is required';
   }
-  if (pricePerDay === undefined || pricePerDay === null || isNaN(Number(pricePerDay)) || Number(pricePerDay) < 0.01) {
-    fieldErrors.pricePerDay = 'Price per day must be at least 0.01';
+
+  const effectiveIsPriceOnRequest = isPriceOnRequest === true || isPriceOnRequest === 1;
+  const effectivePrice = price !== undefined ? Number(price) : (pricePerDay !== undefined ? Number(pricePerDay) : 0);
+
+  if (!effectiveIsPriceOnRequest && (isNaN(effectivePrice) || effectivePrice < 0.01)) {
+    fieldErrors.price = 'Price must be at least 0.01 unless Price on Request is enabled';
   }
-  if (capacity === undefined || capacity === null || !Number.isInteger(Number(capacity)) || Number(capacity) < 1) {
-    fieldErrors.capacity = 'Capacity must be at least 1';
-  }
-  if (!rentalUnitType || !VALID_UNIT_TYPES.includes(rentalUnitType)) {
-    fieldErrors.rentalUnitType = 'Invalid rental unit type';
-  }
+
+  const effectiveItemType = itemType === 'PRODUCT' ? 'PRODUCT' : 'SERVICE';
+  const effectiveCapacity = capacity !== undefined && !isNaN(Number(capacity)) ? Number(capacity) : 1;
+  const effectiveUnitType = rentalUnitType || (effectiveItemType === 'PRODUCT' ? 'GENERAL_PRODUCT' : 'GENERAL_SERVICE');
+  const effectivePriceUnit = priceUnit !== undefined ? (priceUnit?.trim() || null) : (effectiveItemType === 'PRODUCT' ? null : 'per day');
 
   if (Object.keys(fieldErrors).length > 0) {
     throw new ValidationError(fieldErrors);
@@ -204,15 +227,19 @@ rentalUnitRoutes.post('/', requireAuth, async (c) => {
   const now = new Date().toISOString();
 
   const insertResult = await c.env.DB.prepare(
-    `INSERT INTO rental_units (name, description, price_per_day, capacity, rental_unit_type, status, business_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 'AVAILABLE', ?, ?, ?)`
+    `INSERT INTO rental_units (name, description, price_per_day, price, is_price_on_request, price_unit, item_type, capacity, rental_unit_type, status, business_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'AVAILABLE', ?, ?, ?)`
   )
     .bind(
       name.trim(),
       description?.trim() || null,
-      Number(pricePerDay),
-      Number(capacity),
-      rentalUnitType,
+      effectivePrice,
+      effectivePrice,
+      effectiveIsPriceOnRequest ? 1 : 0,
+      effectivePriceUnit,
+      effectiveItemType,
+      effectiveCapacity,
+      effectiveUnitType,
       numBusinessId,
       now,
       now
@@ -260,22 +287,45 @@ rentalUnitRoutes.put('/:id', requireAuth, async (c) => {
     throw new ValidationError({ body: 'Malformed JSON request body' }, 'Malformed JSON request body');
   }
 
-  const { name, description, pricePerDay, capacity, rentalUnitType, status } = body || {};
+  const {
+    name,
+    description,
+    price,
+    pricePerDay,
+    isPriceOnRequest,
+    priceUnit,
+    itemType,
+    capacity,
+    rentalUnitType,
+    status,
+  } = body || {};
   const fieldErrors: Record<string, string> = {};
 
   if (!name || typeof name !== 'string' || !name.trim()) {
-    fieldErrors.name = 'Unit name is required';
+    fieldErrors.name = 'Item name is required';
   }
-  if (pricePerDay === undefined || pricePerDay === null || isNaN(Number(pricePerDay)) || Number(pricePerDay) < 0.01) {
-    fieldErrors.pricePerDay = 'Price per day must be at least 0.01';
+
+  const effectiveIsPriceOnRequest =
+    isPriceOnRequest !== undefined
+      ? (isPriceOnRequest === true || isPriceOnRequest === 1)
+      : (unit.is_price_on_request === 1);
+
+  const effectivePrice =
+    price !== undefined
+      ? Number(price)
+      : (pricePerDay !== undefined ? Number(pricePerDay) : Number(unit.price ?? unit.price_per_day));
+
+  if (!effectiveIsPriceOnRequest && (isNaN(effectivePrice) || effectivePrice < 0.01)) {
+    fieldErrors.price = 'Price must be at least 0.01 unless Price on Request is enabled';
   }
-  if (capacity === undefined || capacity === null || !Number.isInteger(Number(capacity)) || Number(capacity) < 1) {
-    fieldErrors.capacity = 'Capacity must be at least 1';
-  }
-  if (!rentalUnitType || !VALID_UNIT_TYPES.includes(rentalUnitType)) {
-    fieldErrors.rentalUnitType = 'Invalid rental unit type';
-  }
-  if (!status || !VALID_UNIT_STATUSES.includes(status)) {
+
+  const effectiveItemType = itemType !== undefined ? (itemType === 'PRODUCT' ? 'PRODUCT' : 'SERVICE') : (unit.item_type || 'SERVICE');
+  const effectiveCapacity = capacity !== undefined && !isNaN(Number(capacity)) ? Number(capacity) : (unit.capacity ?? 1);
+  const effectiveUnitType = rentalUnitType || unit.rental_unit_type || (effectiveItemType === 'PRODUCT' ? 'GENERAL_PRODUCT' : 'GENERAL_SERVICE');
+  const effectivePriceUnit = priceUnit !== undefined ? (priceUnit?.trim() || null) : (unit.price_unit ?? null);
+  const effectiveStatus = status || unit.status || 'AVAILABLE';
+
+  if (!VALID_UNIT_STATUSES.includes(effectiveStatus as RentalUnitStatus)) {
     fieldErrors.status = 'Invalid unit status';
   }
 
@@ -287,16 +337,20 @@ rentalUnitRoutes.put('/:id', requireAuth, async (c) => {
 
   await c.env.DB.prepare(
     `UPDATE rental_units
-     SET name = ?, description = ?, price_per_day = ?, capacity = ?, rental_unit_type = ?, status = ?, updated_at = ?
+     SET name = ?, description = ?, price_per_day = ?, price = ?, is_price_on_request = ?, price_unit = ?, item_type = ?, capacity = ?, rental_unit_type = ?, status = ?, updated_at = ?
      WHERE id = ?`
   )
     .bind(
       name.trim(),
       description?.trim() || null,
-      Number(pricePerDay),
-      Number(capacity),
-      rentalUnitType,
-      status,
+      effectivePrice,
+      effectivePrice,
+      effectiveIsPriceOnRequest ? 1 : 0,
+      effectivePriceUnit,
+      effectiveItemType,
+      effectiveCapacity,
+      effectiveUnitType,
+      effectiveStatus,
       now,
       id
     )

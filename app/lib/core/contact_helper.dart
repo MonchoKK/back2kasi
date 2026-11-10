@@ -91,7 +91,16 @@ class ContactHelper {
   /**
    * Canonical message sent when customer clicks "Enquire on WhatsApp" on a catalogue item.
    */
-  static String buildCatalogueItemMessage({required String itemName}) {
+  static String buildCatalogueItemMessage({
+    required String itemName,
+    bool isProduct = false,
+  }) {
+    if (isProduct) {
+      return 'Hi! I found your business on Back2Kasi.\n\n'
+          "I'm interested in your $itemName.\n\n"
+          'Could you please let me know availability and pricing?\n\n'
+          'Thank you!';
+    }
     return 'Hi! I found your business on Back2Kasi.\n\n'
         "I'm interested in your $itemName service.\n\n"
         'Could you please provide more information?\n\n'

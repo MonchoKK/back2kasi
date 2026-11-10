@@ -66,6 +66,7 @@ app.get('/api/v1/images/*', async (c) => {
 app.route('/api/users', authRoutes);
 app.route('/api/v1/businesses', businessRoutes);
 app.route('/api/v1/rental-units', rentalUnitRoutes);
+app.route('/api/v1/catalogue-items', rentalUnitRoutes);
 app.route('/api/v1/bookings', bookingRoutes);
 
 // Standard 404 handler

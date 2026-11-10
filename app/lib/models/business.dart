@@ -1,8 +1,11 @@
 // ignore_for_file: constant_identifier_names, slash_for_doc_comments
+export 'business_category.dart';
+import 'business_category.dart';
+
 enum BusinessType { TOILET_RENTAL, COLD_ROOM_RENTAL }
 
 /**
- * Client-side model representing a township rental Business profile.
+ * Client-side model representing a township Business profile across all 6 sectors.
  */
 class Business {
   final int id;
@@ -11,6 +14,8 @@ class Business {
   final String address;
   final String phoneNumber;
   final BusinessType businessType;
+  final BusinessCategory category;
+  final bool isVerified;
   final int ownerId;
   final String? whatsappNumber;
   final bool whatsappEnabled;
@@ -22,7 +27,9 @@ class Business {
     this.description,
     required this.address,
     required this.phoneNumber,
-    required this.businessType,
+    this.businessType = BusinessType.TOILET_RENTAL,
+    this.category = BusinessCategory.EVENTS_RENTALS,
+    this.isVerified = false,
     required this.ownerId,
     this.whatsappNumber,
     this.whatsappEnabled = false,
@@ -30,17 +37,22 @@ class Business {
   });
 
   factory Business.fromJson(Map<String, dynamic> json) {
+    final catRaw = (json['category'] ?? json['businessType'] ?? json['business_type']) as String?;
+    final resolvedCategory = BusinessCategory.fromString(catRaw);
+
     return Business(
       id: json['id'] as int,
       name: json['name'] as String,
       description: json['description'] as String?,
       address: json['address'] as String,
-      phoneNumber: json['phoneNumber'] as String,
-      businessType: json['businessType'] == 'COLD_ROOM_RENTAL'
+      phoneNumber: (json['phoneNumber'] ?? json['phone_number'] ?? '') as String,
+      businessType: (json['businessType'] ?? json['business_type']) == 'COLD_ROOM_RENTAL'
           ? BusinessType.COLD_ROOM_RENTAL
           : BusinessType.TOILET_RENTAL,
-      ownerId: json['ownerId'] as int,
-      whatsappNumber: json['whatsappNumber'] as String?,
+      category: resolvedCategory,
+      isVerified: json['isVerified'] == true || json['is_verified'] == 1,
+      ownerId: (json['ownerId'] ?? json['owner_id'] ?? 0) as int,
+      whatsappNumber: (json['whatsappNumber'] ?? json['whatsapp_number']) as String?,
       whatsappEnabled: json['whatsappEnabled'] == true || json['whatsapp_enabled'] == 1,
       whatsappMessage: (json['whatsappMessage'] ?? json['whatsapp_message']) as String?,
     );
@@ -54,6 +66,8 @@ class Business {
       'address': address,
       'phoneNumber': phoneNumber,
       'businessType': businessType.toString().split('.').last,
+      'category': category.key,
+      'isVerified': isVerified,
       'ownerId': ownerId,
       'whatsappNumber': whatsappNumber,
       'whatsappEnabled': whatsappEnabled,
@@ -68,6 +82,8 @@ class Business {
     String? address,
     String? phoneNumber,
     BusinessType? businessType,
+    BusinessCategory? category,
+    bool? isVerified,
     int? ownerId,
     String? whatsappNumber,
     bool? whatsappEnabled,
@@ -80,6 +96,8 @@ class Business {
       address: address ?? this.address,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       businessType: businessType ?? this.businessType,
+      category: category ?? this.category,
+      isVerified: isVerified ?? this.isVerified,
       ownerId: ownerId ?? this.ownerId,
       whatsappNumber: whatsappNumber ?? this.whatsappNumber,
       whatsappEnabled: whatsappEnabled ?? this.whatsappEnabled,

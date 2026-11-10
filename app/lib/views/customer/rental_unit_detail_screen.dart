@@ -91,7 +91,6 @@ class _RentalUnitDetailScreenState extends State<RentalUnitDetailScreen> {
   Widget build(BuildContext context) {
     final business = _findBusiness(context);
     final images = widget.unit.images;
-    final typeLabel = widget.unit.rentalUnitType.toString().split('.').last.replaceAll('_', ' ');
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
@@ -259,7 +258,7 @@ class _RentalUnitDetailScreenState extends State<RentalUnitDetailScreen> {
                           borderRadius: BorderRadius.circular(AppTheme.radiusPill),
                         ),
                         child: Text(
-                          typeLabel,
+                          widget.unit.isProduct ? 'Product Listing' : 'Service Offering',
                           style: const TextStyle(
                             color: AppTheme.textPrimaryColor,
                             fontSize: 12,
@@ -283,9 +282,13 @@ class _RentalUnitDetailScreenState extends State<RentalUnitDetailScreen> {
                   ),
                   const SizedBox(height: 8),
 
-                  BkPriceDisplay(
-                    pricePerDay: widget.unit.pricePerDay,
-                    fontSize: 26,
+                  Text(
+                    widget.unit.formattedPrice,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.brandColor,
+                    ),
                   ),
 
                   const SizedBox(height: 20),
@@ -296,15 +299,15 @@ class _RentalUnitDetailScreenState extends State<RentalUnitDetailScreen> {
                   Row(
                     children: [
                       _buildFeatureTile(
-                        icon: Icons.people_outline,
-                        title: 'Capacity',
-                        subtitle: '${widget.unit.capacity} Users / Units',
+                        icon: widget.unit.isProduct ? Icons.inventory_2_outlined : Icons.handyman_outlined,
+                        title: 'Classification',
+                        subtitle: widget.unit.isProduct ? 'Physical Item' : 'Service Offering',
                       ),
                       const SizedBox(width: 14),
                       _buildFeatureTile(
                         icon: Icons.verified_user_outlined,
-                        title: 'Quality',
-                        subtitle: 'Cleaned & Serviced',
+                        title: 'Direct Contact',
+                        subtitle: 'Local Township Provider',
                       ),
                     ],
                   ),
@@ -464,10 +467,14 @@ class _RentalUnitDetailScreenState extends State<RentalUnitDetailScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Price per day', style: TextStyle(fontSize: 11, color: AppTheme.textSecondaryColor)),
-                  BkPriceDisplay(
-                    pricePerDay: widget.unit.pricePerDay,
-                    fontSize: 20,
+                  const Text('Price', style: TextStyle(fontSize: 11, color: AppTheme.textSecondaryColor)),
+                  Text(
+                    widget.unit.formattedPrice,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.brandColor,
+                    ),
                   ),
                 ],
               ),
@@ -482,6 +489,7 @@ class _RentalUnitDetailScreenState extends State<RentalUnitDetailScreen> {
                     final phone = targetBusiness.whatsappNumber ?? targetBusiness.phoneNumber;
                     final msg = ContactHelper.buildCatalogueItemMessage(
                       itemName: widget.unit.name,
+                      isProduct: widget.unit.isProduct,
                     );
                     ContactHelper.launchWhatsApp(context, phone: phone, message: msg);
                   },

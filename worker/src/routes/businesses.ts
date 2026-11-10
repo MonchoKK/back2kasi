@@ -20,9 +20,28 @@ export const businessRoutes = new Hono<{
   Variables: { user: AuthUser };
 }>();
 
-const VALID_BUSINESS_TYPES: BusinessType[] = ['TOILET_RENTAL', 'COLD_ROOM_RENTAL'];
+const VALID_BUSINESS_CATEGORIES = [
+  'BEAUTY',
+  'FOOD',
+  'AUTOMOTIVE',
+  'RETAIL',
+  'HOME_SERVICES',
+  'EVENTS_RENTALS',
+];
+
+const VALID_BUSINESS_TYPES: string[] = [
+  'TOILET_RENTAL',
+  'COLD_ROOM_RENTAL',
+  ...VALID_BUSINESS_CATEGORIES,
+];
 
 function toBusinessResponse(row: BusinessRow): BusinessResponse {
+  const category = row.category || (
+    row.business_type === 'TOILET_RENTAL' || row.business_type === 'COLD_ROOM_RENTAL'
+      ? 'EVENTS_RENTALS'
+      : row.business_type
+  );
+
   return {
     id: row.id,
     name: row.name,
@@ -30,6 +49,8 @@ function toBusinessResponse(row: BusinessRow): BusinessResponse {
     address: row.address,
     phoneNumber: toLocalSaPhone(row.phone_number) || row.phone_number,
     businessType: row.business_type,
+    category: category,
+    isVerified: row.is_verified === 1,
     ownerId: row.owner_id,
     whatsappNumber: toLocalSaPhone(row.whatsapp_number),
     whatsappEnabled: row.whatsapp_enabled === 1,
@@ -41,9 +62,20 @@ function toBusinessResponse(row: BusinessRow): BusinessResponse {
 
 // GET /api/v1/businesses - Public discovery
 businessRoutes.get('/', async (c) => {
-  const result = await c.env.DB.prepare(
-    'SELECT * FROM businesses ORDER BY id DESC'
-  ).all<BusinessRow>();
+  const categoryParam = c.req.query('category');
+  let result;
+
+  if (categoryParam && categoryParam !== 'ALL') {
+    result = await c.env.DB.prepare(
+      'SELECT * FROM businesses WHERE category = ? OR business_type = ? ORDER BY id DESC'
+    )
+      .bind(categoryParam, categoryParam)
+      .all<BusinessRow>();
+  } else {
+    result = await c.env.DB.prepare(
+      'SELECT * FROM businesses ORDER BY id DESC'
+    ).all<BusinessRow>();
+  }
 
   const businesses = (result.results || []).map(toBusinessResponse);
   return c.json(businesses, 200);
@@ -208,6 +240,7 @@ businessRoutes.post('/', requireAuth, async (c) => {
     address,
     phoneNumber,
     businessType,
+    category,
     whatsappNumber,
     whatsappEnabled,
     whatsappMessage,
@@ -231,8 +264,10 @@ businessRoutes.post('/', requireAuth, async (c) => {
       normalizedPhone = normalized!;
     }
   }
-  if (!businessType || !VALID_BUSINESS_TYPES.includes(businessType)) {
-    fieldErrors.businessType = 'Business type must be TOILET_RENTAL or COLD_ROOM_RENTAL';
+
+  const resolvedCategory = (category || businessType || 'EVENTS_RENTALS').toString().trim();
+  if (!VALID_BUSINESS_TYPES.includes(resolvedCategory)) {
+    fieldErrors.category = `Invalid category. Must be one of: ${VALID_BUSINESS_CATEGORIES.join(', ')}`;
   }
 
   let normalizedWhatsappNumber: string | null = null;
@@ -258,15 +293,16 @@ businessRoutes.post('/', requireAuth, async (c) => {
   const now = new Date().toISOString();
 
   const insertResult = await c.env.DB.prepare(
-    `INSERT INTO businesses (name, description, address, phone_number, business_type, owner_id, whatsapp_number, whatsapp_enabled, whatsapp_message, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO businesses (name, description, address, phone_number, business_type, category, is_verified, owner_id, whatsapp_number, whatsapp_enabled, whatsapp_message, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`
   )
     .bind(
       name.trim(),
       description?.trim() || null,
       address.trim(),
       normalizedPhone,
-      businessType,
+      resolvedCategory,
+      resolvedCategory,
       currentUser.id,
       normalizedWhatsappNumber,
       isEnabled,
@@ -322,6 +358,7 @@ businessRoutes.put('/:id', requireAuth, async (c) => {
     address,
     phoneNumber,
     businessType,
+    category,
     whatsappNumber,
     whatsappEnabled,
     whatsappMessage,
@@ -345,8 +382,10 @@ businessRoutes.put('/:id', requireAuth, async (c) => {
       normalizedPhone = normalized!;
     }
   }
-  if (!businessType || !VALID_BUSINESS_TYPES.includes(businessType)) {
-    fieldErrors.businessType = 'Business type must be TOILET_RENTAL or COLD_ROOM_RENTAL';
+
+  const resolvedCategory = (category || businessType || existing.category || existing.business_type || 'EVENTS_RENTALS').toString().trim();
+  if (!VALID_BUSINESS_TYPES.includes(resolvedCategory)) {
+    fieldErrors.category = `Invalid category. Must be one of: ${VALID_BUSINESS_CATEGORIES.join(', ')}`;
   }
 
   let normalizedWhatsappNumber = existing.whatsapp_number ?? null;
@@ -380,7 +419,7 @@ businessRoutes.put('/:id', requireAuth, async (c) => {
 
   await c.env.DB.prepare(
     `UPDATE businesses
-     SET name = ?, description = ?, address = ?, phone_number = ?, business_type = ?, whatsapp_number = ?, whatsapp_enabled = ?, whatsapp_message = ?, updated_at = ?
+     SET name = ?, description = ?, address = ?, phone_number = ?, business_type = ?, category = ?, whatsapp_number = ?, whatsapp_enabled = ?, whatsapp_message = ?, updated_at = ?
      WHERE id = ?`
   )
     .bind(
@@ -388,7 +427,8 @@ businessRoutes.put('/:id', requireAuth, async (c) => {
       description?.trim() || null,
       address.trim(),
       normalizedPhone,
-      businessType,
+      resolvedCategory,
+      resolvedCategory,
       normalizedWhatsappNumber,
       isEnabled,
       message,

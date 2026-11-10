@@ -55,6 +55,9 @@ class ApiConfig {
   static String businessContactSettings(int id) => '$businesses/$id/contact-settings';
   static String businessContact(int id) => businessContactSettings(id);
   static String get rentalUnits => '$baseUrl/api/v1/rental-units';
+  static String get catalogueItems => '$baseUrl/api/v1/catalogue-items';
+  static String catalogueItemsByBusiness(int businessId) =>
+      '$catalogueItems?businessId=$businessId';
   static String get bookings => '$baseUrl/api/v1/bookings';
   static String bookingContact(int id) => '$bookings/$id/contact';
 

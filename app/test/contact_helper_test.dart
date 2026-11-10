@@ -55,11 +55,25 @@ void main() {
       expect(customMsg, 'Welcome to our portable toilet rental service! How can we help?');
     });
 
-    test('buildCatalogueItemMessage generates canonical item enquiry', () {
-      final msg = ContactHelper.buildCatalogueItemMessage(itemName: 'VIP Executive Mobile Toilet');
+    test('buildCatalogueItemMessage generates service enquiry when isProduct is false', () {
+      final msg = ContactHelper.buildCatalogueItemMessage(
+        itemName: 'VIP Executive Mobile Toilet',
+        isProduct: false,
+      );
       expect(msg.contains('Hi! I found your business on Back2Kasi.'), isTrue);
       expect(msg.contains("I'm interested in your VIP Executive Mobile Toilet service."), isTrue);
       expect(msg.contains('Could you please provide more information?'), isTrue);
+      expect(msg.contains('Thank you!'), isTrue);
+    });
+
+    test('buildCatalogueItemMessage generates product enquiry when isProduct is true', () {
+      final msg = ContactHelper.buildCatalogueItemMessage(
+        itemName: 'Red Velvet Birthday Cake',
+        isProduct: true,
+      );
+      expect(msg.contains('Hi! I found your business on Back2Kasi.'), isTrue);
+      expect(msg.contains("I'm interested in your Red Velvet Birthday Cake."), isTrue);
+      expect(msg.contains('Could you please let me know availability and pricing?'), isTrue);
       expect(msg.contains('Thank you!'), isTrue);
     });
 
