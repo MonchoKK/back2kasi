@@ -5,10 +5,10 @@ import 'package:back2kasi_app/models/booking.dart';
 import 'package:back2kasi_app/views/shared/components/bk_components.dart';
 
 void main() {
-  group('Back2Kasi Emerald Dark Theme Bk Components Tests', () {
+  group('Back2Kasi Emerald + Warm Ivory Theme Bk Components Tests', () {
     Widget buildTestHarness(Widget child) {
       return MaterialApp(
-        theme: AppTheme.darkTheme,
+        theme: AppTheme.lightTheme,
         home: Scaffold(
           body: Center(child: child),
         ),
@@ -167,3 +167,4 @@ void main() {
     });
   });
 }
+

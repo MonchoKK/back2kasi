@@ -36,14 +36,14 @@ class CachedImageView extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: const Color(0xFF1E2433),
+          color: const Color(0xFFEFECE3),
           borderRadius: borderRadius,
         ),
         alignment: Alignment.center,
         child: child ??
             Icon(
               fallbackIcon,
-              color: const Color(0xFF94A3B8),
+              color: const Color(0xFF9E9B90),
               size: iconSize,
             ),
       );

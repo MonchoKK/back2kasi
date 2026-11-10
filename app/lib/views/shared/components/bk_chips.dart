@@ -18,22 +18,22 @@ class BkBookingStatusChip extends StatelessWidget {
 
     switch (status) {
       case BookingStatus.CONFIRMED:
-        bg = AppTheme.brandColor.withOpacity(0.18);
+        bg = AppTheme.brandColor.withOpacity(0.12);
         fg = AppTheme.brandColor;
         label = 'CONFIRMED';
         break;
       case BookingStatus.PENDING:
         bg = AppTheme.accentColor.withOpacity(0.18);
-        fg = AppTheme.accentColor;
+        fg = const Color(0xFFB48329); // Rich champagne gold tone
         label = 'PENDING';
         break;
       case BookingStatus.COMPLETED:
-        bg = const Color(0xFF3B82F6).withOpacity(0.18);
-        fg = const Color(0xFF60A5FA);
+        bg = const Color(0xFF2563EB).withOpacity(0.12);
+        fg = const Color(0xFF1D4ED8);
         label = 'COMPLETED';
         break;
       case BookingStatus.CANCELLED:
-        bg = AppTheme.errorColor.withOpacity(0.18);
+        bg = AppTheme.errorColor.withOpacity(0.12);
         fg = AppTheme.errorColor;
         label = 'CANCELLED';
         break;

@@ -1,6 +1,6 @@
 # Back2Kasi Engineering Log
 
-> **Last Updated:** 2026-11-10 | **Current Sprint:** Sprint 29 – Emerald Dark Mode UI/UX Redesign
+> **Last Updated:** 2026-11-10 | **Current Sprint:** Sprint 29 – Emerald + Warm Ivory Redesign
 
 ---
 
@@ -16,7 +16,7 @@
 | Sprint 26 – Customer Marketplace Redesign | Category chips, live search, image cards, interactive photo gallery carousel | ✅ Complete | [Sprint-26-Customer-Marketplace-Redesign.md](Engineering-Logs/Sprint-26-Customer-Marketplace-Redesign.md) |
 | Sprint 27 – Business Owner Experience | Dashboard live preview carousel, status filters, one-tap maintenance toggle | ✅ Complete | [Sprint-27-Business-Owner-Experience-Redesign.md](Engineering-Logs/Sprint-27-Business-Owner-Experience-Redesign.md) |
 | Sprint 28 – Final Polish & Verification | Shimmer skeleton screens, empty states, full 22-test regression suite | ✅ Complete | [Sprint-28-Final-Polish-And-Verification.md](Engineering-Logs/Sprint-28-Final-Polish-And-Verification.md) |
-| Sprint 29 – Emerald Dark Mode UI/UX | Dark theme design tokens, shared Bk* component library, full screen redesign | ✅ Complete | [Sprint-29-Emerald-Dark-Mode-Redesign.md](Engineering-Logs/Sprint-29-Emerald-Dark-Mode-Redesign.md) |
+| Sprint 29 – Emerald + Warm Ivory Redesign | Emerald + Warm Ivory + Charcoal + Gold identity, shared Bk* library | ✅ Complete | [Sprint-29-Emerald-Warm-Ivory-Redesign.md](Engineering-Logs/Sprint-29-Emerald-Warm-Ivory-Redesign.md) |
 
 ---
 

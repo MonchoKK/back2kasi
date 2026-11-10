@@ -5,37 +5,38 @@ import 'package:google_fonts/google_fonts.dart';
 /**
  * Design system tokens and ThemeData for Back2Kasi.
  *
- * <p>Implements the Emerald Dark Identity for Back2Kasi marketplace:
- * - Brand Primary: Emerald Green (#10B981)
- * - Success: Emerald (#10B981)
- * - Accent: Warm Amber (#F59E0B)
- * - Deep Background: Charcoal Obsidian (#0D0E15)
- * - Surface / Cards: Rich Slate Dark (#161922)
- * - Primary Text: Crisp Off-White (#F8FAFC)
- * - Secondary Text: Muted Slate (#94A3B8)
- * - Borders: Subtle Dark Slate (#262D3D)
+ * <p>Implements the Emerald + Warm Ivory + Charcoal + Gold Identity:
+ * - Brand Identity: Emerald (#059669)
+ * - Background: Warm Ivory (#F8F5EE)
+ * - Typography & Dark Surfaces: Charcoal (#252B27)
+ * - Premium Accents: Champagne Gold (#D6A84F)
+ * - Cards & Elevated Surfaces: Crisp White (#FFFFFF)
+ * - Secondary Text: Muted Charcoal (#5C6660)
+ * - Borders: Soft Warm Ivory Border (#E7E2D6)
  *
  * Typography uses Inter with strict scale hierarchy.</p>
  */
 class AppTheme {
   // Brand Colors
-  static const Color brandColor = Color(0xFF10B981); // Emerald 500 (Vibrant on dark)
+  static const Color brandColor = Color(0xFF059669);    // Emerald 600
   static const Color primaryColor = brandColor;
-  static const Color successColor = Color(0xFF10B981); // Emerald 500
-  static const Color accentColor = Color(0xFFF59E0B);  // Amber 500
-  static const Color darkColor = Color(0xFF0D0E15);    // Deep dark
+  static const Color successColor = Color(0xFF059669);  // Emerald 600
+  static const Color accentColor = Color(0xFFD6A84F);   // Champagne Gold
+  static const Color goldColor = accentColor;           // Champagne Gold alias
+  static const Color charcoalColor = Color(0xFF252B27); // Charcoal
+  static const Color darkColor = charcoalColor;         // Charcoal alias
 
-  // Interface Neutrals (Emerald Dark Mode)
+  // Interface Neutrals (Warm Ivory System)
   static const Color white = Color(0xFFFFFFFF);
-  static const Color backgroundColor = Color(0xFF0D0E15); // Charcoal Obsidian
-  static const Color surfaceColor = Color(0xFF161922);    // Rich Slate Dark Card Surface
+  static const Color backgroundColor = Color(0xFFF8F5EE); // Warm Ivory
+  static const Color surfaceColor = Color(0xFFFFFFFF);    // Crisp White Card Surface
   static const Color cardColor = surfaceColor;
-  static const Color textPrimaryColor = Color(0xFFF8FAFC); // Crisp Off-White / Slate 50
+  static const Color textPrimaryColor = Color(0xFF252B27); // Charcoal Text
   static const Color darkTextColor = textPrimaryColor;     // Forward/backward compatible alias
-  static const Color textSecondaryColor = Color(0xFF94A3B8); // Slate 400
+  static const Color textSecondaryColor = Color(0xFF5C6660); // Muted Charcoal (WCAG AAA)
   static const Color secondaryTextColor = textSecondaryColor; // Forward/backward compatible alias
-  static const Color borderColor = Color(0xFF262D3D);    // Subtle Dark Slate Border
-  static const Color errorColor = Color(0xFFEF4444);      // Red 500
+  static const Color borderColor = Color(0xFFE7E2D6);    // Warm Ivory Border
+  static const Color errorColor = Color(0xFFDC2626);      // Red 600
 
   // Spacing Scale
   static const double space4 = 4.0;
@@ -53,42 +54,42 @@ class AppTheme {
   static const double radiusLarge = 20.0;
   static const double radiusPill = 999.0;
 
-  // Box Shadows
+  // Box Shadows (Warm Charcoal Tints)
   static List<BoxShadow> get cardShadow => [
         BoxShadow(
-          color: Colors.black.withOpacity(0.25),
-          blurRadius: 12,
-          offset: const Offset(0, 4),
+          color: const Color(0xFF252B27).withOpacity(0.05),
+          blurRadius: 10,
+          offset: const Offset(0, 3),
         ),
       ];
 
   static List<BoxShadow> get elevatedShadow => [
         BoxShadow(
-          color: Colors.black.withOpacity(0.40),
-          blurRadius: 18,
-          offset: const Offset(0, 6),
+          color: const Color(0xFF252B27).withOpacity(0.09),
+          blurRadius: 16,
+          offset: const Offset(0, 5),
         ),
       ];
 
-  /// The primary Emerald Dark Theme
-  static ThemeData get darkTheme {
+  /// The primary Emerald + Warm Ivory Theme
+  static ThemeData get lightTheme {
     final baseTextTheme = GoogleFonts.interTextTheme();
 
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       primaryColor: primaryColor,
       scaffoldBackgroundColor: backgroundColor,
       canvasColor: backgroundColor,
 
-      colorScheme: const ColorScheme.dark(
+      colorScheme: const ColorScheme.light(
         primary: primaryColor,
         secondary: accentColor,
         background: backgroundColor,
         surface: surfaceColor,
         error: errorColor,
-        onPrimary: darkColor,
-        onSecondary: white,
+        onPrimary: white,
+        onSecondary: charcoalColor,
         onBackground: textPrimaryColor,
         onSurface: textPrimaryColor,
         onError: white,
@@ -105,6 +106,7 @@ class AppTheme {
           color: textPrimaryColor,
           fontSize: 18,
           fontWeight: FontWeight.bold,
+          letterSpacing: -0.3,
         ),
       ),
 
@@ -160,7 +162,7 @@ class AppTheme {
         ),
       ),
 
-      // Card Theme (16px corner radius, dark slate background, subtle border)
+      // Card Theme (16px corner radius, white surface, warm ivory border)
       cardTheme: CardThemeData(
         color: surfaceColor,
         elevation: 0,
@@ -171,12 +173,12 @@ class AppTheme {
         ),
       ),
 
-      // Input Decoration Theme (52-56px height, rounded corners, subtle dark border)
+      // Input Decoration Theme (52-56px height, rounded corners, subtle warm border)
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surfaceColor,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        hintStyle: GoogleFonts.inter(color: textSecondaryColor.withOpacity(0.6), fontSize: 14),
+        hintStyle: GoogleFonts.inter(color: textSecondaryColor.withOpacity(0.7), fontSize: 14),
         labelStyle: GoogleFonts.inter(color: textSecondaryColor, fontSize: 14),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMedium),
@@ -200,7 +202,7 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
-          foregroundColor: darkColor,
+          foregroundColor: white,
           elevation: 0,
           minimumSize: const Size.fromHeight(50),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -209,7 +211,7 @@ class AppTheme {
           ),
           textStyle: GoogleFonts.inter(
             fontSize: 15,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -249,6 +251,6 @@ class AppTheme {
     );
   }
 
-  /// Alias returning darkTheme to keep the experience consistently dark
-  static ThemeData get lightTheme => darkTheme;
+  /// Theme alias
+  static ThemeData get darkTheme => lightTheme;
 }

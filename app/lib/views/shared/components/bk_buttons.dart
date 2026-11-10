@@ -35,7 +35,7 @@ class BkPrimaryButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: backgroundColor ?? AppTheme.primaryColor,
           disabledBackgroundColor: AppTheme.primaryColor.withOpacity(0.6),
-          foregroundColor: AppTheme.darkColor,
+          foregroundColor: AppTheme.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
@@ -47,7 +47,7 @@ class BkPrimaryButton extends StatelessWidget {
                 height: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.2,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppTheme.darkColor),
+                  valueColor: AlwaysStoppedAnimation<Color>(AppTheme.white),
                 ),
               )
             : Row(
@@ -55,15 +55,15 @@ class BkPrimaryButton extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (icon != null) ...[
-                    Icon(icon, size: 18, color: AppTheme.darkColor),
+                    Icon(icon, size: 18, color: AppTheme.white),
                     const SizedBox(width: AppTheme.space8),
                   ],
                   Text(
                     label,
                     style: const TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.darkColor,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.white,
                     ),
                   ),
                 ],

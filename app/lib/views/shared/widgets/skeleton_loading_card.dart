@@ -54,7 +54,7 @@ class _SkeletonLoadingCardState extends State<SkeletonLoadingCard>
           width: widget.width,
           height: widget.height,
           decoration: BoxDecoration(
-            color: const Color(0xFF1E2433).withOpacity(_animation.value),
+            color: const Color(0xFFEAE5D9).withOpacity(_animation.value),
             borderRadius: widget.borderRadius ?? BorderRadius.circular(16),
             border: Border.all(
               color: AppTheme.borderColor.withOpacity(0.5),
