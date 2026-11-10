@@ -19,6 +19,7 @@ import 'package:google_fonts/google_fonts.dart';
 class AppTheme {
   // Brand Colors
   static const Color brandColor = Color(0xFF059669);    // Emerald 600
+  static const Color emerald = brandColor;              // Emerald brand alias
   static const Color primaryColor = brandColor;
   static const Color successColor = Color(0xFF059669);  // Emerald 600
   static const Color accentColor = Color(0xFFD6A84F);   // Champagne Gold

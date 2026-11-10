@@ -192,7 +192,7 @@ class ContactHelper {
           message,
           style: const TextStyle(color: AppTheme.white, fontWeight: FontWeight.w600),
         ),
-        backgroundColor: isError ? Colors.redAccent.shade700 : AppTheme.emerald,
+        backgroundColor: isError ? Colors.redAccent.shade700 : AppTheme.brandColor,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         duration: const Duration(seconds: 3),

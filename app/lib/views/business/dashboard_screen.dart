@@ -101,7 +101,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 padding: const EdgeInsets.all(AppTheme.space20),
                 child: myBusinesses.isEmpty
                     ? _buildEmptyState()
-                    : _buildDashboardContent(rentalUnitProvider, bookingProvider, myBusinesses),
+                    : _buildDashboardContent(rentalUnitProvider, myBusinesses),
               ),
             ),
     );
@@ -111,7 +111,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return BkEmptyState(
       icon: Icons.storefront_outlined,
       title: 'Register Your Business',
-      message: 'Register your toilet hire or cold room rental business to start accepting client bookings.',
+      message: 'Register your toilet hire or cold room rental business to start receiving customer enquiries.',
       actionLabel: 'Register Business',
       onAction: () async {
         await Navigator.push(
@@ -127,7 +127,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildDashboardContent(
     RentalUnitProvider rentalUnitProvider,
-    BookingProvider bookingProvider,
     List<Business> myBusinesses,
   ) {
     final currentBusiness = myBusinesses.firstWhere(
@@ -136,14 +135,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
 
     final List<dynamic> rentalUnits = rentalUnitProvider.getUnitsForBusiness(currentBusiness.id);
-    final unitIds = rentalUnits.map((u) => u.id).toSet();
-
-    final businessBookings = bookingProvider.ownerBookings
-        .where((b) => unitIds.contains(b.rentalUnitId))
-        .toList();
-
-    final pendingRequests = businessBookings.where((b) => b.status == BookingStatus.PENDING).length;
-    final activeBookings = businessBookings.where((b) => b.status == BookingStatus.CONFIRMED).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -288,7 +279,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       SizedBox(height: 2),
                       Text(
-                        'Add your toilets or cold storage to begin accepting bookings.',
+                        'Add your toilets or cold storage to display in your public catalogue.',
                         style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 12),
                       ),
                     ],

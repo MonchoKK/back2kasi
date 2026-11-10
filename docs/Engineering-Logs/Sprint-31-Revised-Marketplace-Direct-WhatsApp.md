@@ -61,3 +61,4 @@ Following deep user testing and operational alignment for township rental enterp
 - **Worker TypeScript:** `npm --prefix worker run typecheck` (`tsc --noEmit`) passes with 0 errors.
 - **Unit Testing:** `app/test/contact_helper_test.dart` verifies phone formatting (`0...` <-> `27...`), URL generation, and canonical prefilled enquiry generation.
 - **Platform Compatibility:** Universal launcher handles web (`window.open`) and mobile (`canLaunchUrl` / `launchUrl`) without runtime exceptions.
+
