@@ -93,6 +93,18 @@ rentalUnitRoutes.get('/', async (c) => {
     if (isNaN(businessId)) {
       return c.json([], 200);
     }
+
+    // Verify parent business exists and is not suspended
+    const business = await c.env.DB.prepare(
+      'SELECT id, is_suspended FROM businesses WHERE id = ?'
+    )
+      .bind(businessId)
+      .first<{ id: number; is_suspended?: number }>();
+
+    if (!business || business.is_suspended === 1) {
+      return c.json([], 200);
+    }
+
     const result = await c.env.DB.prepare(
       'SELECT * FROM rental_units WHERE business_id = ? ORDER BY id DESC'
     )
@@ -101,9 +113,12 @@ rentalUnitRoutes.get('/', async (c) => {
 
     units = result.results || [];
   } else {
-    // Public browse: return all AVAILABLE units across platform
+    // Public browse: return all AVAILABLE units across platform whose parent business is active
     const result = await c.env.DB.prepare(
-      "SELECT * FROM rental_units WHERE status = 'AVAILABLE' ORDER BY id DESC"
+      `SELECT u.* FROM rental_units u
+       INNER JOIN businesses b ON u.business_id = b.id
+       WHERE u.status = 'AVAILABLE' AND (b.is_suspended IS NULL OR b.is_suspended = 0)
+       ORDER BY u.id DESC`
     ).all<RentalUnitRow>();
     units = result.results || [];
   }

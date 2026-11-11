@@ -51,6 +51,7 @@ function toBusinessResponse(row: BusinessRow): BusinessResponse {
     businessType: row.business_type,
     category: category,
     isVerified: row.is_verified === 1,
+    isSuspended: row.is_suspended === 1,
     ownerId: row.owner_id,
     whatsappNumber: toLocalSaPhone(row.whatsapp_number),
     whatsappEnabled: row.whatsapp_enabled === 1,
@@ -60,20 +61,20 @@ function toBusinessResponse(row: BusinessRow): BusinessResponse {
   };
 }
 
-// GET /api/v1/businesses - Public discovery
+// GET /api/v1/businesses - Public discovery (filters out suspended businesses)
 businessRoutes.get('/', async (c) => {
   const categoryParam = c.req.query('category');
   let result;
 
   if (categoryParam && categoryParam !== 'ALL') {
     result = await c.env.DB.prepare(
-      'SELECT * FROM businesses WHERE category = ? OR business_type = ? ORDER BY id DESC'
+      'SELECT * FROM businesses WHERE (category = ? OR business_type = ?) AND (is_suspended IS NULL OR is_suspended = 0) ORDER BY id DESC'
     )
       .bind(categoryParam, categoryParam)
       .all<BusinessRow>();
   } else {
     result = await c.env.DB.prepare(
-      'SELECT * FROM businesses ORDER BY id DESC'
+      'SELECT * FROM businesses WHERE (is_suspended IS NULL OR is_suspended = 0) ORDER BY id DESC'
     ).all<BusinessRow>();
   }
 
@@ -95,7 +96,7 @@ businessRoutes.get('/my', requireAuth, async (c) => {
   return c.json(businesses, 200);
 });
 
-// GET /api/v1/businesses/:id - Public discovery by ID
+// GET /api/v1/businesses/:id - Public discovery by ID (hidden if suspended)
 businessRoutes.get('/:id', async (c) => {
   const paramId = c.req.param('id') || '';
   const id = parseInt(paramId, 10);
@@ -107,7 +108,7 @@ businessRoutes.get('/:id', async (c) => {
     .bind(id)
     .first<BusinessRow>();
 
-  if (!business) {
+  if (!business || business.is_suspended === 1) {
     throw new ResourceNotFoundError(`Business not found with id: ${id}`);
   }
 

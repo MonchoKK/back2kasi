@@ -73,6 +73,7 @@ export interface BusinessRow {
   business_type: BusinessType;
   category?: string;
   is_verified?: number;
+  is_suspended?: number;
   owner_id: number;
   whatsapp_number?: string | null;
   whatsapp_enabled?: number;
@@ -140,6 +141,7 @@ export interface BusinessResponse {
   businessType: BusinessType;
   category: string;
   isVerified: boolean;
+  isSuspended?: boolean;
   ownerId: number;
   whatsappNumber?: string | null;
   whatsappEnabled?: boolean;

@@ -16,6 +16,7 @@ class Business {
   final BusinessType businessType;
   final BusinessCategory category;
   final bool isVerified;
+  final bool isSuspended;
   final int ownerId;
   final String? whatsappNumber;
   final bool whatsappEnabled;
@@ -30,6 +31,7 @@ class Business {
     this.businessType = BusinessType.TOILET_RENTAL,
     this.category = BusinessCategory.EVENTS_RENTALS,
     this.isVerified = false,
+    this.isSuspended = false,
     required this.ownerId,
     this.whatsappNumber,
     this.whatsappEnabled = false,
@@ -51,6 +53,7 @@ class Business {
           : BusinessType.TOILET_RENTAL,
       category: resolvedCategory,
       isVerified: json['isVerified'] == true || json['is_verified'] == 1,
+      isSuspended: json['isSuspended'] == true || json['is_suspended'] == 1,
       ownerId: (json['ownerId'] ?? json['owner_id'] ?? 0) as int,
       whatsappNumber: (json['whatsappNumber'] ?? json['whatsapp_number']) as String?,
       whatsappEnabled: json['whatsappEnabled'] == true || json['whatsapp_enabled'] == 1,
@@ -68,6 +71,7 @@ class Business {
       'businessType': businessType.toString().split('.').last,
       'category': category.key,
       'isVerified': isVerified,
+      'isSuspended': isSuspended,
       'ownerId': ownerId,
       'whatsappNumber': whatsappNumber,
       'whatsappEnabled': whatsappEnabled,
@@ -84,6 +88,7 @@ class Business {
     BusinessType? businessType,
     BusinessCategory? category,
     bool? isVerified,
+    bool? isSuspended,
     int? ownerId,
     String? whatsappNumber,
     bool? whatsappEnabled,
@@ -98,6 +103,7 @@ class Business {
       businessType: businessType ?? this.businessType,
       category: category ?? this.category,
       isVerified: isVerified ?? this.isVerified,
+      isSuspended: isSuspended ?? this.isSuspended,
       ownerId: ownerId ?? this.ownerId,
       whatsappNumber: whatsappNumber ?? this.whatsappNumber,
       whatsappEnabled: whatsappEnabled ?? this.whatsappEnabled,
