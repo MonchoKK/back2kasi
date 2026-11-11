@@ -1,61 +1,92 @@
 # Back2Kasi
 
-> A platform connecting people to affordable township accommodation and rental units.
+> **One marketplace. Many businesses.**  
+> Discover local township businesses, explore their products and services, and connect directly on WhatsApp.
 
 ---
 
 ## Table of Contents
 
-1. [Project Overview](#project-overview)
-2. [Tech Stack](#tech-stack)
-3. [Project Structure](#project-structure)
-4. [Prerequisites](#prerequisites)
-5. [Local Development Setup](#local-development-setup)
-6. [Running the Application](#running-the-application)
-7. [Environment Configuration](#environment-configuration)
-8. [API Overview](#api-overview)
-9. [Git Workflow](#git-workflow)
-10. [Documentation](#documentation)
+1. [Overview](#overview)
+2. [Sectors Supported](#sectors-supported)
+3. [Key Features](#key-features)
+4. [Tech Stack](#tech-stack)
+5. [Project Structure](#project-structure)
+6. [Local Development Setup](#local-development-setup)
+7. [Running the Application](#running-the-application)
+8. [Database & Migrations](#database--migrations)
+9. [API Reference](#api-reference)
+10. [Design System & Theme](#design-system--theme)
+11. [Git Workflow](#git-workflow)
 
 ---
 
-## Project Overview
+## Overview
 
-Back2Kasi is a full-stack platform built to help people find and book rental units in townships. The backend exposes a RESTful API consumed by a mobile/web frontend.
+**Back2Kasi** is a multi-sector township marketplace designed to empower township entrepreneurs (*Kasi businesses*) and make it effortless for community members and visitors to discover local products and services.
 
-**Current status:** 🚧 In active development
+Rather than forcing complex in-app checkout walls or restrictive booking forms, Back2Kasi provides a frictionless, lightweight customer journey:
+
+```mermaid
+flowchart LR
+    A[Browse Local Businesses] --> B[View Live Catalogue]
+    B --> C[Tap WhatsApp Enquiry]
+    C --> D[Chat Directly on WhatsApp]
+```
+
+---
+
+## Sectors Supported
+
+Back2Kasi organizes businesses and offerings across 6 core township industries:
+
+| Sector | Key | Typical Businesses |
+|---|---|---|
+| 💇 **Beauty & Personal Care** | `BEAUTY` | Salons, barbers, nail technicians, makeup artists |
+| 🍔 **Food & Catering** | `FOOD` | Bakeries, caterers, food stalls, restaurants, shisanyama |
+| 🚗 **Automotive Services** | `AUTOMOTIVE` | Mechanics, car washes, panel beaters, tyre shops |
+| 🛍️ **Retail & Products** | `RETAIL` | Clothing boutiques, furniture makers, electronics, crafts |
+| 🛠️ **Home & Construction** | `HOME_SERVICES` | Plumbers, electricians, painters, handymen, contractors |
+| 🎪 **Events & Rentals** | `EVENTS_RENTALS` | Event decorators, sound/tent hire, cold rooms, VIP toilets |
+
+---
+
+## Key Features
+
+### For Customers
+- **Business-First Discovery Feed:** Browse verified local businesses filtered by industry category chips.
+- **Deep Catalogue Search:** Search by business name, address, category, or specific item (e.g. typing *"fade"*, *"cake"*, or *"tyre"* surfaces businesses that offer that item).
+- **Verified Kasi Business Badge:** Clear visual indicator (`is_verified = 1`) highlighting authentic, vetted township merchants.
+- **Transparent Pricing:** Clear fixed prices or *"Price on Request"* tags for custom quotes.
+- **Context-Aware WhatsApp Enquiries:** Tapping **Enquire** automatically opens WhatsApp with a prefilled message containing the business name and exact product/service name.
+
+### For Business Owners
+- **Merchant Dashboard:** Manage one or multiple businesses from a single account.
+- **Flexible Catalogue Management:** Add and update products (goods in stock) and services (rates/consultations) with photos and pricing.
+- **WhatsApp Channel Controls:** Enable or disable WhatsApp enquiry, configure South African phone numbers (`0XXXXXXXXX` validated and converted to international `27XXXXXXXXX`).
+- **Availability Toggles:** Mark items as available or unavailable in real-time.
 
 ---
 
 ## Tech Stack
 
-### Backend (Cloudflare Worker — Production) (`/worker`)
-
-| Technology | Purpose |
-|---|---|
-| Cloudflare Workers | Serverless Edge Runtime (Free Tier: 100k req/day) |
-| Cloudflare D1 | Distributed SQLite Database (Free Tier: 5GB, 5M reads/day) |
-| Hono | Ultra-fast Edge Web Framework with TypeScript |
-| Web Crypto API (HS256) | Zero-overhead JWT authentication |
-| bcryptjs | Password hashing compatible with edge runtime |
-| Wrangler | Cloudflare CLI & local simulation |
-
-### Legacy Backend (Spring Boot) (`/backend`)
-
-| Technology | Version | Purpose |
-|---|---|---|
-| Java | 21 | Language |
-| Spring Boot | 3.5.3 | Application framework |
-| Spring Data JPA / Hibernate | — | ORM / database access |
-| PostgreSQL | 18.x | Relational database |
-
 ### Frontend (`/app`)
+- **Framework:** Flutter 3.x (Dart 3.x)
+- **Platforms:** Android, iOS, Windows Desktop, Web
+- **State Management:** Provider
+- **Design System:** Custom Back2Kasi Emerald & Charcoal palette with reusable UI components
+- **Testing:** Comprehensive Flutter unit & widget test suite (`flutter test`)
 
-| Technology | Purpose |
-|---|---|
-| Flutter / Dart | Cross-platform mobile (Android/iOS) client |
-| Provider | State management |
-| Flutter Secure Storage | Secure credential storage |
+### Backend (`/worker`)
+- **Runtime:** Cloudflare Workers (Serverless Edge Runtime)
+- **Database:** Cloudflare D1 (Distributed SQLite at edge)
+- **Web Framework:** [Hono](https://hono.dev/) with TypeScript
+- **Authentication:** Web Crypto API (HS256 JWT tokens)
+- **Password Security:** Edge-compatible `bcryptjs`
+- **Tooling:** Wrangler CLI
+
+### Legacy Backend (`/backend`)
+- *Spring Boot 3.x / Java 21 / PostgreSQL (archived for reference).*
 
 ---
 
@@ -63,174 +94,145 @@ Back2Kasi is a full-stack platform built to help people find and book rental uni
 
 ```
 back2kasi/
-├── worker/                         ← Cloudflare Worker REST API (Active)
+├── app/                            ← Flutter cross-platform client
+│   ├── lib/
+│   │   ├── config/                 ← AppTheme, ApiConfig, Routing
+│   │   ├── core/                   ← AuthService, BusinessProvider, RentalUnitProvider
+│   │   ├── models/                 ← Business, BusinessCategory, RentalUnit
+│   │   └── views/
+│   │       ├── auth/               ← Login & Register screens
+│   │       ├── business/           ← Merchant dashboard, business profile & catalogue
+│   │       ├── customer/           ← Customer marketplace, business detail, item detail
+│   │       └── shared/             ← BkButton, BkCard, BkTextField, BkEmptyState
+│   └── test/                       ← Unit & widget test suites
+│
+├── worker/                         ← Cloudflare Worker edge REST API (Active)
+│   ├── migrations/                 ← D1 SQLite migrations (0001 to 0004)
 │   ├── src/
-│   │   ├── index.ts                ← Entrypoint, CORS, error handling
-│   │   ├── types.ts                ← Type definitions & DTOs
+│   │   ├── index.ts                ← Routing, CORS, error handling
+│   │   ├── types.ts                ← DTOs, Enums, DB models
 │   │   ├── lib/                    ← JWT & error utilities
 │   │   ├── middleware/             ← Auth middleware
-│   │   └── routes/                 ← Auth, Businesses, Rental Units, Bookings
-│   ├── migrations/                 ← D1 SQLite database migrations
-│   └── wrangler.jsonc              ← Worker & D1 binding configuration
+│   │   └── routes/                 ← Auth, Businesses, Catalogue items
+│   ├── package.json
+│   └── wrangler.jsonc              ← Worker & D1 database bindings
 │
-├── app/                            ← Flutter mobile application
 ├── backend/                        ← Original Spring Boot API (reference)
-├── docs/                           ← Project-level documentation
-└── README.MD
+├── docs/                           ← Architecture & audit documentation
+└── README.MD                       ← Project overview & guides
 ```
-
----
-
-## Prerequisites
-
-Make sure you have the following installed before starting:
-
-| Tool | Version | Download |
-|---|---|---|
-| Java JDK | 21 | [adoptium.net](https://adoptium.net) |
-| Maven | 3.9+ | [maven.apache.org](https://maven.apache.org) |
-| PostgreSQL | 14+ | [postgresql.org](https://www.postgresql.org/download) |
-| Git | Latest | [git-scm.com](https://git-scm.com) |
 
 ---
 
 ## Local Development Setup
 
-### 1. Clone the repository
+### Prerequisites
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) (3.24+ recommended)
+- [Node.js](https://nodejs.org/) (18+ recommended)
+- Git
 
+### 1. Clone the repository
 ```bash
 git clone https://github.com/MonchoKK/back2kasi.git
 cd back2kasi
 ```
 
-### 2. Create the PostgreSQL database
-
-Open your terminal and run:
-
+### 2. Setup & Run the Backend API (Worker)
 ```bash
-psql -U postgres -c "CREATE DATABASE back2kasi_db;"
+cd worker
+npm install
+npm run migrate:local
+npm run dev
+```
+The API server starts locally at **`http://localhost:8787`**.
+
+### 3. Setup & Launch the Flutter App
+In a separate terminal:
+```bash
+cd app
+flutter pub get
+flutter run
 ```
 
-Or using pgAdmin / any PostgreSQL client — create a database named `back2kasi_db`.
-
-### 3. Configure local credentials
-
-Create the file `backend/src/main/resources/application-local.properties`:
-
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/back2kasi_db
-spring.datasource.username=postgres
-spring.datasource.password=YOUR_POSTGRES_PASSWORD
-```
-
-> ⚠️ This file is listed in `.gitignore` and will **never** be committed. Do not share it.
+> **Target specific devices:**
+> - Windows: `flutter run -d windows`
+> - Chrome: `flutter run -d chrome`
+> - Android: `flutter run -d android`
 
 ---
 
-## Running the Application
+## Database & Migrations
 
-From the `backend/` directory:
+Cloudflare D1 migrations are located in `worker/migrations/`:
 
-```bash
-cd backend
-mvn spring-boot:run
-```
-
-The server starts on **`http://localhost:8080`**.
-
-You'll know it's running when you see:
-
-```
-Started Back2KasiApplication in ~11s
-```
-
-### Useful commands
-
-| Command | Description |
+| Migration | Purpose |
 |---|---|
-| `mvn spring-boot:run` | Start the app in dev mode |
-| `mvn clean spring-boot:run` | Clean build then start |
-| `mvn test` | Run all tests |
-| `mvn package` | Build a runnable `.jar` |
-| `Ctrl + C` | Stop the app |
+| `0001_initial_schema.sql` | Users, businesses, rental units, bookings tables |
+| `0002_images_and_constraints.sql` | Multi-image gallery for catalogue items |
+| `0003_whatsapp_contact.sql` | Business WhatsApp number & toggle fields |
+| `0004_generic_marketplace.sql` | Industry categories, `is_verified` badge, `item_type` (`PRODUCT`/`SERVICE`), `is_price_on_request`, `price_unit` |
 
-> **Tip:** Spring DevTools is enabled — the app **auto-restarts** whenever you save a `.java` file.
+### Apply migrations:
+- **Local:** `npm --prefix worker run migrate:local`
+- **Remote (Production):** `npm --prefix worker run migrate:remote`
 
 ---
 
-## Environment Configuration
+## API Reference
 
-| File | Purpose | Committed? |
+All endpoints are hosted on the Worker (`http://localhost:8787` in dev or `https://back2kasi-api.back2kasi.workers.dev` in production).
+
+### Authentication
+- `POST /api/users/register` — Register a customer or business owner account
+- `POST /api/users/login` — Sign in and obtain JWT
+- `GET /api/users/me` — Get current authenticated user profile
+
+### Businesses
+- `GET /api/businesses` — List businesses (supports `?category=BEAUTY`, `?search=salon`, `?ownerId=...`)
+- `GET /api/businesses/:id` — Get single business details
+- `POST /api/businesses` — Register a new business *(Owner)*
+- `PUT /api/businesses/:id` — Update business profile & WhatsApp settings *(Owner)*
+- `GET /api/businesses/:id/whatsapp` — Fetch WhatsApp contact details for enquiries
+
+### Products & Services (Catalogue)
+- `GET /api/rental-units` — List available catalogue items
+- `GET /api/rental-units/business/:id` — Fetch items belonging to a specific business
+- `GET /api/rental-units/:id` — Get single catalogue item details with photos
+- `POST /api/rental-units` — Add new product or service *(Owner)*
+- `PUT /api/rental-units/:id` — Update catalogue item details & availability *(Owner)*
+- `DELETE /api/rental-units/:id` — Remove an item from the catalogue *(Owner)*
+
+---
+
+## Design System & Theme
+
+Back2Kasi utilizes a distinctive township-inspired modern color palette:
+
+| Color | Hex | Purpose |
 |---|---|---|
-| `application.properties` | Shared defaults, all environments | ✅ Yes |
-| `application-local.properties` | Local DB credentials (overrides defaults) | ❌ No — gitignored |
+| **Emerald** | `#059669` | Brand primary, action buttons, active chips |
+| **Warm Ivory** | `#F8F5EE` | Clean, soft background |
+| **Charcoal** | `#252B27` | Headings, primary text, and dark surfaces |
+| **Champagne Gold** | `#D6A84F` | Verified business badge, premium accents |
+| **WhatsApp Green** | `#25D366` | Direct communication badges and buttons |
 
-The active profile is set in `application.properties`:
+---
 
-```properties
-spring.profiles.active=local
-```
+## Testing
 
-For production, credentials should be supplied via environment variables:
-
+### Flutter Tests
 ```bash
-DB_URL=jdbc:postgresql://host/back2kasi_db
-DB_USERNAME=postgres
-DB_PASSWORD=secret
+cd app
+flutter test
+```
+All unit, widget, and layout tests across authentication, dashboard, marketplace, and catalogue screens are run.
+
+### TypeScript Typechecking
+```bash
+cd worker
+npm run typecheck
 ```
 
 ---
 
-## API Overview
-
-All endpoints are prefixed with `/api/v1/`.
-
-| Resource | Base URL |
-|---|---|
-| Rental Units | `/api/v1/rental-units` |
-| Bookings | `/api/v1/bookings` |
-| Auth | `/api/v1/auth` |
-| Business Profiles | `/api/v1/businesses` |
-
-Full API standards are documented in [`docs/DEVELOPMENT_STANDARDS.md`](docs/DEVELOPMENT_STANDARDS.md).
-
----
-
-## Git Workflow
-
-```
-main          ← production-ready code only
-  └── develop ← integration branch
-        └── feature/your-feature-name
-```
-
-### Branch naming
-
-```
-feature/<short-description>    e.g. feature/auth-jwt
-fix/<short-description>        e.g. fix/booking-date-overlap
-chore/<short-description>      e.g. chore/add-devtools
-docs/<short-description>       e.g. docs/update-readme
-```
-
-### Commit format (Conventional Commits)
-
-```
-feat(auth): add JWT refresh token endpoint
-fix(booking): correct overlap validation logic
-chore(deps): add spring-boot-devtools
-docs: update README setup instructions
-```
-
----
-
-## Documentation
-WTC-LHVJQSJP
-
-| Document | Description |
-|---|---|
-| [`docs/DEVELOPMENT_STANDARDS.md`](docs/DEVELOPMENT_STANDARDS.md) | Coding conventions, naming rules, API standards, Git workflow |
-
----
-
-*Built with ☕ and 🏘️ by the Back2Kasi team.*
+*Built with ❤️ for township economies and local entrepreneurs.*
