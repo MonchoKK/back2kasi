@@ -68,8 +68,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
         SnackBar(
           content: Text(
             newStatus == RentalUnitStatus.AVAILABLE
-                ? 'Unit marked as Available'
-                : 'Unit moved to Maintenance',
+                ? 'Item marked as Available'
+                : 'Item marked as Paused / Unavailable',
           ),
         ),
       );
@@ -113,7 +113,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
         try {
           await context.read<RentalUnitProvider>().deleteRentalUnit(unit.id, widget.business.id, token);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Rental unit deleted successfully')),
+            const SnackBar(content: Text('Catalogue item deleted successfully')),
           );
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -247,12 +247,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     ),
                     const SizedBox(width: 8),
                     _buildFilterChip(
-                      'Rented (${units.where((u) => u.status == RentalUnitStatus.RENTED).length})',
-                      RentalUnitStatus.RENTED,
-                    ),
-                    const SizedBox(width: 8),
-                    _buildFilterChip(
-                      'Maintenance (${units.where((u) => u.status == RentalUnitStatus.UNDER_MAINTENANCE).length})',
+                      'Paused / Inactive (${units.where((u) => u.status != RentalUnitStatus.AVAILABLE).length})',
                       RentalUnitStatus.UNDER_MAINTENANCE,
                     ),
                   ],
@@ -464,12 +459,12 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       case RentalUnitStatus.RENTED:
         badgeBg = const Color(0xFF3B82F6).withOpacity(0.12);
         badgeFg = const Color(0xFF2563EB);
-        statusLabel = 'Rented';
+        statusLabel = 'Unavailable';
         break;
       case RentalUnitStatus.UNDER_MAINTENANCE:
         badgeBg = AppTheme.accentColor.withOpacity(0.15);
         badgeFg = const Color(0xFFD97706);
-        statusLabel = 'Maintenance';
+        statusLabel = 'Paused';
         break;
     }
 
@@ -578,7 +573,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                 children: [
                                   Icon(
                                     unit.status == RentalUnitStatus.AVAILABLE
-                                        ? Icons.build_circle_outlined
+                                        ? Icons.pause_circle_outline
                                         : Icons.check_circle_outline,
                                     size: 18,
                                     color: AppTheme.textPrimaryColor,
@@ -586,7 +581,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                   const SizedBox(width: 8),
                                   Text(
                                     unit.status == RentalUnitStatus.AVAILABLE
-                                        ? 'Mark for Maintenance'
+                                        ? 'Pause / Mark Unavailable'
                                         : 'Mark as Available',
                                   ),
                                 ],
