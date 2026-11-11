@@ -53,6 +53,9 @@ dependencies:
   # Efficient image caching, memory management and placeholder shimmers
   cached_network_image: ^3.3.1
 
+  # Native URL and scheme launching (WhatsApp wa.me, telephone tel:, web links)
+  url_launcher: ^6.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
