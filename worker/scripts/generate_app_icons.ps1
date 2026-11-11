@@ -1,6 +1,6 @@
 Add-Type -AssemblyName System.Drawing
 
-$sourcePath = "C:\Users\KABELO PC\.gemini\antigravity\brain\ba9ce623-fe35-4f1f-bdb7-7b6e28269f18\app_launcher_icon_fullbleed_1794422062479.jpg"
+$sourcePath = "C:\Users\KABELO PC\.gemini\antigravity\brain\ba9ce623-fe35-4f1f-bdb7-7b6e28269f18\back2kasi_app_icon_1794423651403.jpg"
 $src = [System.Drawing.Bitmap]::FromFile($sourcePath)
 
 function Save-ResizedIcon {
