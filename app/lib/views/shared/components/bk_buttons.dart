@@ -33,6 +33,7 @@ class BkPrimaryButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
+          minimumSize: Size(width ?? 0, 50),
           backgroundColor: backgroundColor ?? AppTheme.primaryColor,
           disabledBackgroundColor: AppTheme.primaryColor.withOpacity(0.6),
           foregroundColor: AppTheme.white,
@@ -106,6 +107,7 @@ class BkSecondaryButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
+          minimumSize: Size(width ?? 0, 50),
           foregroundColor: textColor ?? AppTheme.darkColor,
           side: BorderSide(
             color: borderColor ?? AppTheme.borderColor,

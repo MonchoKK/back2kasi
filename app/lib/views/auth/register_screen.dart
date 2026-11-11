@@ -66,6 +66,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = e.toString().replaceAll('Exception: ', '');
       });

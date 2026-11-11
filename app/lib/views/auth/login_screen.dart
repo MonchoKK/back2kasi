@@ -47,6 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       // Navigation redirect is handled by router or auth state change in main.dart
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = e.toString().replaceAll('Exception: ', '');
       });
