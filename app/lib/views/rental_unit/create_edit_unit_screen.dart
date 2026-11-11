@@ -335,8 +335,8 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
         SnackBar(
           content: Text(
             isEditMode
-                ? 'Rental unit details updated'
-                : 'Rental unit registered successfully',
+                ? 'Catalogue offering updated successfully'
+                : 'Catalogue offering created successfully',
           ),
           backgroundColor: AppTheme.successColor,
         ),
@@ -354,9 +354,9 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
     final isLoading = context.watch<RentalUnitProvider>().isLoading;
 
     final Map<RentalUnitStatus, String> statusNames = {
-      RentalUnitStatus.AVAILABLE: 'Available for Bookings',
-      RentalUnitStatus.RENTED: 'Currently Rented out',
-      RentalUnitStatus.UNDER_MAINTENANCE: 'Under Maintenance / Deactivated',
+      RentalUnitStatus.AVAILABLE: 'Available (Active)',
+      RentalUnitStatus.RENTED: 'Unavailable (Out of Stock)',
+      RentalUnitStatus.UNDER_MAINTENANCE: 'Paused / Deactivated',
     };
 
     return Scaffold(

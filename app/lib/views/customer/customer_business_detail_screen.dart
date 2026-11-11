@@ -53,62 +53,106 @@ class _CustomerBusinessDetailScreenState extends State<CustomerBusinessDetailScr
       appBar: BkAppBar(
         title: widget.business.name,
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Business Profile Header Card
-          _buildBusinessHeaderCard(),
-
-          // Error banner
-          if (errorMessage != null && availableUnits.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.all(12),
-              color: AppTheme.errorColor.withOpacity(0.08),
-              child: Text(
-                errorMessage,
-                style: const TextStyle(color: AppTheme.errorColor, fontSize: 13),
-                textAlign: TextAlign.center,
-              ),
+      body: RefreshIndicator(
+        color: AppTheme.brandColor,
+        onRefresh: () async => _loadUnits(),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // Business Profile Header Card
+            SliverToBoxAdapter(
+              child: _buildBusinessHeaderCard(),
             ),
 
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Text(
-              'Products & Services',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimaryColor,
-                letterSpacing: -0.2,
-              ),
-            ),
-          ),
-
-          Expanded(
-            child: isLoading && availableUnits.isEmpty
-                ? const BkLoadingIndicator(message: 'Loading inventory...')
-                : RefreshIndicator(
-                    color: AppTheme.brandColor,
-                    onRefresh: () async => _loadUnits(),
-                    child: availableUnits.isEmpty
-                        ? BkEmptyState(
-                            icon: errorMessage != null ? Icons.wifi_off : Icons.inventory_2_outlined,
-                            title: errorMessage != null ? 'Unable to load inventory' : 'No units available',
-                            message: errorMessage ?? 'All units from this provider are currently booked or offline.',
-                            actionLabel: 'Refresh',
-                            onAction: _loadUnits,
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            itemCount: availableUnits.length,
-                            itemBuilder: (context, index) {
-                              final unit = availableUnits[index];
-                              return _buildUnitCard(unit);
-                            },
-                          ),
+            // Error banner
+            if (errorMessage != null && availableUnits.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.errorColor.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                    border: Border.all(color: AppTheme.errorColor.withOpacity(0.2)),
                   ),
-          ),
-        ],
+                  child: Text(
+                    errorMessage,
+                    style: const TextStyle(color: AppTheme.errorColor, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+
+            // Section Header
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Products & Services',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimaryColor,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    if (availableUnits.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppTheme.brandColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+                        ),
+                        child: Text(
+                          '${availableUnits.length} ${availableUnits.length == 1 ? 'item' : 'items'}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.brandColor,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Catalogue Content
+            if (isLoading && availableUnits.isEmpty)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: BkLoadingIndicator(message: 'Loading catalogue...'),
+              )
+            else if (availableUnits.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: BkEmptyState(
+                  icon: errorMessage != null ? Icons.wifi_off : Icons.inventory_2_outlined,
+                  title: errorMessage != null ? 'Unable to load catalogue' : 'No items listed yet',
+                  message: errorMessage ??
+                      'This business has not added any products or services to their catalogue yet.',
+                  actionLabel: 'Refresh',
+                  onAction: _loadUnits,
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final unit = availableUnits[index];
+                      return _buildUnitCard(unit);
+                    },
+                    childCount: availableUnits.length,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

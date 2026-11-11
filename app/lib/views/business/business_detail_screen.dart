@@ -191,112 +191,138 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
           ),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Business Meta Header Card
-          _buildBusinessHeaderCard(),
-
-          // Error message banner
-          if (errorMessage != null && units.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.all(12),
-              color: AppTheme.errorColor.withOpacity(0.08),
-              child: Text(
-                errorMessage,
-                style: const TextStyle(color: AppTheme.errorColor),
-                textAlign: TextAlign.center,
-              ),
+      body: RefreshIndicator(
+        color: AppTheme.brandColor,
+        onRefresh: () async => _loadData(),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // Business Meta Header Card
+            SliverToBoxAdapter(
+              child: _buildBusinessHeaderCard(),
             ),
 
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Catalogue Items',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimaryColor,
-                    letterSpacing: -0.2,
+            // Error message banner
+            if (errorMessage != null && units.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.errorColor.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                    border: Border.all(color: AppTheme.errorColor.withOpacity(0.2)),
+                  ),
+                  child: Text(
+                    errorMessage,
+                    style: const TextStyle(color: AppTheme.errorColor),
+                    textAlign: TextAlign.center,
                   ),
                 ),
-                Text(
-                  '${filteredUnits.length} of ${units.length}',
-                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
-                ),
-              ],
-            ),
-          ),
+              ),
 
-          // Status Filter Chips
-          if (units.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
+            // Section Heading
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildFilterChip('All (${units.length})', null),
-                    const SizedBox(width: 8),
-                    _buildFilterChip(
-                      'Available (${units.where((u) => u.status == RentalUnitStatus.AVAILABLE).length})',
-                      RentalUnitStatus.AVAILABLE,
+                    const Text(
+                      'Catalogue Items',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimaryColor,
+                        letterSpacing: -0.2,
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    _buildFilterChip(
-                      'Paused / Inactive (${units.where((u) => u.status != RentalUnitStatus.AVAILABLE).length})',
-                      RentalUnitStatus.UNDER_MAINTENANCE,
+                    Text(
+                      '${filteredUnits.length} of ${units.length}',
+                      style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
                     ),
                   ],
                 ),
               ),
             ),
 
-          const SizedBox(height: 12),
-
-          Expanded(
-            child: isLoading && units.isEmpty
-                ? const BkLoadingIndicator(message: 'Loading catalogue...')
-                : RefreshIndicator(
-                    color: AppTheme.brandColor,
-                    onRefresh: () async => _loadData(),
-                    child: filteredUnits.isEmpty
-                        ? BkEmptyState(
-                            icon: Icons.inventory_2_outlined,
-                            title: 'No items found',
-                            message: _statusFilter != null
-                                ? 'No catalogue items match this status filter.'
-                                : 'Add your products or services to display them to customers and receive direct WhatsApp enquiries.',
-                            actionLabel: _statusFilter != null ? 'Show All Items' : 'Add Item',
-                            onAction: () {
-                              if (_statusFilter != null) {
-                                setState(() {
-                                  _statusFilter = null;
-                                });
-                              } else {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CreateEditUnitScreen(businessId: widget.business.id),
-                                  ),
-                                );
-                              }
-                            },
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: filteredUnits.length,
-                            itemBuilder: (context, index) {
-                              final item = filteredUnits[index];
-                              return _buildUnitCard(item);
-                            },
-                          ),
+            // Status Filter Chips
+            if (units.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildFilterChip('All (${units.length})', null),
+                        const SizedBox(width: 8),
+                        _buildFilterChip(
+                          'Available (${units.where((u) => u.status == RentalUnitStatus.AVAILABLE).length})',
+                          RentalUnitStatus.AVAILABLE,
+                        ),
+                        const SizedBox(width: 8),
+                        _buildFilterChip(
+                          'Paused / Inactive (${units.where((u) => u.status != RentalUnitStatus.AVAILABLE).length})',
+                          RentalUnitStatus.UNDER_MAINTENANCE,
+                        ),
+                      ],
+                    ),
                   ),
-          ),
-        ],
+                ),
+              ),
+
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 12),
+            ),
+
+            // Catalogue Content
+            if (isLoading && units.isEmpty)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: BkLoadingIndicator(message: 'Loading catalogue...'),
+              )
+            else if (filteredUnits.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: BkEmptyState(
+                  icon: Icons.inventory_2_outlined,
+                  title: 'No items found',
+                  message: _statusFilter != null
+                      ? 'No catalogue items match this status filter.'
+                      : 'Add your products or services to display them to customers and receive direct WhatsApp enquiries.',
+                  actionLabel: _statusFilter != null ? 'Show All Items' : 'Add Item',
+                  onAction: () {
+                    if (_statusFilter != null) {
+                      setState(() {
+                        _statusFilter = null;
+                      });
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CreateEditUnitScreen(businessId: widget.business.id),
+                        ),
+                      );
+                    }
+                  },
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final item = filteredUnits[index];
+                      return _buildUnitCard(item);
+                    },
+                    childCount: filteredUnits.length,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppTheme.brandColor,

@@ -24,29 +24,31 @@ class BkEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.space32),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(AppTheme.space24),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(AppTheme.space24),
+              padding: const EdgeInsets.all(AppTheme.space20),
               decoration: BoxDecoration(
                 color: AppTheme.brandColor.withOpacity(0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 icon,
-                size: 48,
+                size: 40,
                 color: AppTheme.brandColor,
               ),
             ),
-            const SizedBox(height: AppTheme.space24),
+            const SizedBox(height: AppTheme.space16),
             Text(
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 18,
+                fontSize: 17,
                 fontWeight: FontWeight.bold,
                 color: AppTheme.textPrimaryColor,
                 letterSpacing: -0.3,
@@ -57,13 +59,13 @@ class BkEmptyState extends StatelessWidget {
               message,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 color: AppTheme.textSecondaryColor,
                 height: 1.4,
               ),
             ),
             if (actionLabel != null && onAction != null) ...[
-              const SizedBox(height: AppTheme.space24),
+              const SizedBox(height: AppTheme.space20),
               BkPrimaryButton(
                 label: actionLabel!,
                 onPressed: onAction,
