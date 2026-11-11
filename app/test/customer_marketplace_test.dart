@@ -46,8 +46,8 @@ void main() {
       expect(find.text('💇 Beauty & Personal Care'), findsOneWidget);
       expect(find.text('🍔 Food & Catering'), findsOneWidget);
 
-      // Verify Segmented Tabs
-      expect(find.text('Products & Services'), findsOneWidget);
+      // Verify Header & Business Section
+      expect(find.text('Find products & services in your kasi'), findsOneWidget);
       expect(find.text('Local Businesses'), findsOneWidget);
     });
 

@@ -121,10 +121,7 @@ class _RentalUnitDetailScreenState extends State<RentalUnitDetailScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            widget.unit.rentalUnitType == RentalUnitType.STANDARD_COLD_ROOM ||
-                                    widget.unit.rentalUnitType == RentalUnitType.MOBILE_COLD_ROOM
-                                ? Icons.ac_unit
-                                : Icons.wc,
+                            widget.unit.isProduct ? Icons.shopping_bag_outlined : Icons.handyman_outlined,
                             size: 64,
                             color: AppTheme.textSecondaryColor.withOpacity(0.3),
                           ),

@@ -4,15 +4,13 @@ import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../core/auth_service.dart';
 import '../../core/business_provider.dart';
-import '../../core/contact_helper.dart';
 import '../../core/rental_unit_provider.dart';
 import '../../models/business.dart';
+import '../../models/business_category.dart';
 import '../../models/rental_unit.dart';
 import '../shared/components/bk_components.dart';
-import '../shared/widgets/cached_image_view.dart';
 import '../shared/widgets/skeleton_loading_card.dart';
 import 'customer_business_detail_screen.dart';
-import 'rental_unit_detail_screen.dart';
 
 /**
  * Screen presenting the redesigned Customer Marketplace for Back2Kasi.
@@ -34,7 +32,6 @@ class _BrowseScreenState extends State<BrowseScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedCategory = 'ALL';
-  int _selectedTab = 0; // 0 = Rentals, 1 = Providers
 
   @override
   void initState() {
@@ -64,37 +61,12 @@ class _BrowseScreenState extends State<BrowseScreen> {
     context.read<RentalUnitProvider>().fetchAllAvailableUnits();
   }
 
-  List<RentalUnit> _filterUnits(List<RentalUnit> units, List<Business> businesses) {
-    final businessMap = {for (var b in businesses) b.id: b};
+  List<Business> _filterBusinesses(List<Business> businesses, List<RentalUnit> units) {
+    final unitsByBusiness = <int, List<RentalUnit>>{};
+    for (final u in units) {
+      unitsByBusiness.putIfAbsent(u.businessId, () => []).add(u);
+    }
 
-    return units.where((unit) {
-      // Category filter
-      if (_selectedCategory != 'ALL') {
-        final biz = businessMap[unit.businessId];
-        if (biz != null) {
-          if (biz.category.key != _selectedCategory) {
-            return false;
-          }
-        } else if (_selectedCategory != 'EVENTS_RENTALS') {
-          return false;
-        }
-      }
-
-      // Search query
-      if (_searchQuery.isNotEmpty) {
-        final nameMatch = unit.name.toLowerCase().contains(_searchQuery);
-        final descMatch = unit.description?.toLowerCase().contains(_searchQuery) ?? false;
-        final typeMatch = unit.rentalUnitType.toString().toLowerCase().contains(_searchQuery);
-        final itemTypeMatch = (unit.isProduct ? 'product' : 'service').contains(_searchQuery);
-        final priceMatch = unit.formattedPrice.toLowerCase().contains(_searchQuery);
-        if (!nameMatch && !descMatch && !typeMatch && !itemTypeMatch && !priceMatch) return false;
-      }
-
-      return true;
-    }).toList();
-  }
-
-  List<Business> _filterBusinesses(List<Business> businesses) {
     return businesses.where((business) {
       if (_selectedCategory != 'ALL') {
         if (business.category.key != _selectedCategory) {
@@ -107,7 +79,14 @@ class _BrowseScreenState extends State<BrowseScreen> {
         final descMatch = business.description?.toLowerCase().contains(_searchQuery) ?? false;
         final addrMatch = business.address.toLowerCase().contains(_searchQuery);
         final catMatch = business.category.displayName.toLowerCase().contains(_searchQuery);
-        if (!nameMatch && !descMatch && !addrMatch && !catMatch) return false;
+
+        // Also search across their catalogue items (e.g. searching "cake" finds bakeries selling cake)
+        final bizUnits = unitsByBusiness[business.id] ?? [];
+        final itemMatch = bizUnits.any((u) =>
+            u.name.toLowerCase().contains(_searchQuery) ||
+            (u.description?.toLowerCase().contains(_searchQuery) ?? false));
+
+        if (!nameMatch && !descMatch && !addrMatch && !catMatch && !itemMatch) return false;
       }
 
       return true;
@@ -123,8 +102,12 @@ class _BrowseScreenState extends State<BrowseScreen> {
     final rawUnits = rentalUnitProvider.allUnits;
     final rawBusinesses = businessProvider.allBusinesses;
 
-    final filteredUnits = _filterUnits(rawUnits, rawBusinesses);
-    final filteredBusinesses = _filterBusinesses(rawBusinesses);
+    final filteredBusinesses = _filterBusinesses(rawBusinesses, rawUnits);
+
+    final unitsByBusiness = <int, List<RentalUnit>>{};
+    for (final u in rawUnits) {
+      unitsByBusiness.putIfAbsent(u.businessId, () => []).add(u);
+    }
 
     final isLoading = businessProvider.isLoading || rentalUnitProvider.isLoading;
     final errorMessage = businessProvider.errorMessage ?? rentalUnitProvider.errorMessage;
@@ -190,7 +173,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Local businesses. More opportunities.',
+                      'Support Local • Kasi Marketplace',
                       style: TextStyle(
                         color: AppTheme.brandColor,
                         fontSize: 12,
@@ -200,7 +183,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Find equipment rentals in your kasi',
+                      'Find products & services in your kasi',
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
@@ -220,13 +203,43 @@ class _BrowseScreenState extends State<BrowseScreen> {
 
                     const SizedBox(height: 20),
 
-                    // Segmented Tabs: Rentals vs Providers
-                    _buildSegmentedTab(filteredUnits.length, filteredBusinesses.length),
+                    // Section Heading: Local Businesses
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _selectedCategory == 'ALL'
+                              ? 'Local Businesses'
+                              : BusinessCategory.fromString(_selectedCategory).displayName,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimaryColor,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppTheme.brandColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+                          ),
+                          child: Text(
+                            '${filteredBusinesses.length} ${filteredBusinesses.length == 1 ? 'business' : 'businesses'}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.brandColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
 
                     // Error banner
-                    if (errorMessage != null && (rawUnits.isNotEmpty || rawBusinesses.isNotEmpty))
+                    if (errorMessage != null && rawBusinesses.isNotEmpty)
                       Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(12),
@@ -246,82 +259,46 @@ class _BrowseScreenState extends State<BrowseScreen> {
               ),
             ),
 
-            // Content List (Rentals or Providers)
-            if (isLoading && rawUnits.isEmpty && rawBusinesses.isEmpty)
+            // Content List (Local Businesses)
+            if (isLoading && rawBusinesses.isEmpty)
               const SliverFillRemaining(
                 child: MarketplaceSkeletonList(),
               )
-            else if (_selectedTab == 0)
-              filteredUnits.isEmpty
-                  ? SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: BkEmptyState(
-                        icon: Icons.inventory_2_outlined,
-                        title: 'No rentals found',
-                        message: _searchQuery.isNotEmpty || _selectedCategory != 'ALL'
-                            ? 'No available rental units match your filter criteria.'
-                            : 'No rental units currently available in catalogue.',
-                        actionLabel: _searchQuery.isNotEmpty || _selectedCategory != 'ALL'
-                            ? 'Reset Filters'
-                            : null,
-                        onAction: () {
-                          setState(() {
-                            _searchQuery = '';
-                            _selectedCategory = 'ALL';
-                            _searchController.clear();
-                          });
-                        },
-                      ),
-                    )
-                  : SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final unit = filteredUnits[index];
-                            final business = rawBusinesses.cast<Business?>().firstWhere(
-                                  (b) => b?.id == unit.businessId,
-                                  orElse: () => null,
-                                );
-                            return _buildRentalCard(unit, business);
-                          },
-                          childCount: filteredUnits.length,
-                        ),
-                      ),
-                    )
+            else if (filteredBusinesses.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: BkEmptyState(
+                  icon: Icons.storefront_outlined,
+                  title: 'No businesses found',
+                  message: _searchQuery.isNotEmpty || _selectedCategory != 'ALL'
+                      ? 'No registered businesses match your search or category filter.'
+                      : 'No businesses registered yet in this category.',
+                  actionLabel: _searchQuery.isNotEmpty || _selectedCategory != 'ALL'
+                      ? 'Reset Filters'
+                      : null,
+                  onAction: () {
+                    setState(() {
+                      _searchQuery = '';
+                      _selectedCategory = 'ALL';
+                      _searchController.clear();
+                    });
+                  },
+                ),
+              )
             else
-              filteredBusinesses.isEmpty
-                  ? SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: BkEmptyState(
-                        icon: Icons.storefront_outlined,
-                        title: 'No providers found',
-                        message: _searchQuery.isNotEmpty || _selectedCategory != 'ALL'
-                            ? 'No registered providers match your filter criteria.'
-                            : 'No registered service providers yet.',
-                        actionLabel: _searchQuery.isNotEmpty || _selectedCategory != 'ALL'
-                            ? 'Reset Filters'
-                            : null,
-                        onAction: () {
-                          setState(() {
-                            _searchQuery = '';
-                            _selectedCategory = 'ALL';
-                            _searchController.clear();
-                          });
-                        },
-                      ),
-                    )
-                  : SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            return _buildBusinessCard(filteredBusinesses[index]);
-                          },
-                          childCount: filteredBusinesses.length,
-                        ),
-                      ),
-                    ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final business = filteredBusinesses[index];
+                      final bUnits = unitsByBusiness[business.id] ?? [];
+                      return _buildBusinessCard(business, bUnits);
+                    },
+                    childCount: filteredBusinesses.length,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -416,356 +393,10 @@ class _BrowseScreenState extends State<BrowseScreen> {
     );
   }
 
-  Widget _buildSegmentedTab(int rentalCount, int providerCount) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceColor,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppTheme.borderColor, width: 1.2),
-        boxShadow: AppTheme.cardShadow,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildTabButton(
-              index: 0,
-              label: 'Products & Services',
-              count: rentalCount,
-              icon: Icons.local_offer_outlined,
-            ),
-          ),
-          Expanded(
-            child: _buildTabButton(
-              index: 1,
-              label: 'Local Businesses',
-              count: providerCount,
-              icon: Icons.storefront_outlined,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTabButton({
-    required int index,
-    required String label,
-    required int count,
-    required IconData icon,
-  }) {
-    final isSelected = _selectedTab == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedTab = index;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? AppTheme.brandColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isSelected ? AppTheme.white : AppTheme.textSecondaryColor,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? AppTheme.white : AppTheme.textSecondaryColor,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: isSelected ? Colors.black.withOpacity(0.2) : AppTheme.backgroundColor,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                '$count',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: isSelected ? AppTheme.white : AppTheme.textSecondaryColor,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRentalCard(RentalUnit unit, Business? business) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceColor,
-        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-        border: Border.all(color: AppTheme.borderColor, width: 1.0),
-        boxShadow: AppTheme.cardShadow,
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => RentalUnitDetailScreen(
-                  unit: unit,
-                  business: business,
-                ),
-              ),
-            );
-          },
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Image Header with Badges
-              Stack(
-                children: [
-                  CachedImageView(
-                    imageUrl: unit.displayImageUrl,
-                    height: 180,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    fallbackIcon: unit.rentalUnitType == RentalUnitType.STANDARD_COLD_ROOM ||
-                            unit.rentalUnitType == RentalUnitType.MOBILE_COLD_ROOM
-                        ? Icons.ac_unit
-                        : Icons.wc,
-                  ),
-
-                  // Category Badge (Top Left)
-                  Positioned(
-                    top: 12,
-                    left: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.darkColor.withOpacity(0.75),
-                        borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            unit.isProduct ? Icons.shopping_bag_outlined : Icons.handyman_outlined,
-                            size: 11,
-                            color: AppTheme.white,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            unit.isProduct ? 'Product' : 'Service',
-                            style: const TextStyle(
-                              color: AppTheme.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // Photo Count Badge (Top Right)
-                  if (unit.images.isNotEmpty)
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppTheme.darkColor.withOpacity(0.75),
-                          borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.photo_library_outlined, size: 12, color: AppTheme.white),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${unit.images.length}',
-                              style: const TextStyle(
-                                color: AppTheme.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                  // Price Tag Pill (Bottom Right of Image)
-                  Positioned(
-                    bottom: 12,
-                    right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppTheme.surfaceColor,
-                        borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                        boxShadow: AppTheme.cardShadow,
-                      ),
-                      child: Text(
-                        unit.formattedPrice,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.brandColor,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              // Card Body
-              Padding(
-                padding: const EdgeInsets.all(AppTheme.space16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            unit.name,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.textPrimaryColor,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppTheme.brandColor.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(AppTheme.radiusPill),
-                          ),
-                          child: const Text(
-                            'Available',
-                            style: TextStyle(
-                              color: AppTheme.brandColor,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-
-                    if (business != null)
-                      Row(
-                        children: [
-                          Icon(business.category.icon, size: 14, color: AppTheme.brandColor),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              '${business.name} • ${business.address}',
-                              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                    const SizedBox(height: 12),
-                    const Divider(color: AppTheme.borderColor),
-                    const SizedBox(height: 8),
-
-                    Row(
-                      children: [
-                        Icon(
-                          unit.isProduct ? Icons.inventory_2_outlined : Icons.build_outlined,
-                          size: 15,
-                          color: AppTheme.textSecondaryColor,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          unit.isProduct ? 'Product' : 'Service',
-                          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
-                        ),
-                        const Spacer(),
-                        OutlinedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => RentalUnitDetailScreen(
-                                  unit: unit,
-                                  business: business,
-                                ),
-                              ),
-                            );
-                          },
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 36),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                            side: const BorderSide(color: AppTheme.borderColor, width: 1.2),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                            ),
-                          ),
-                          child: const Text('Details', style: TextStyle(fontSize: 12, color: AppTheme.darkColor)),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            final targetBusiness = business;
-                            if (targetBusiness == null) return;
-                            final phone = targetBusiness.whatsappNumber ?? targetBusiness.phoneNumber;
-                            final msg = ContactHelper.buildCatalogueItemMessage(
-                              itemName: unit.name,
-                              isProduct: unit.isProduct,
-                            );
-                            ContactHelper.launchWhatsApp(context, phone: phone, message: msg);
-                          },
-                          icon: const Icon(Icons.chat_bubble_outline_rounded, size: 14),
-                          label: const Text('Enquire', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: const Size(0, 36),
-                            backgroundColor: AppTheme.brandColor,
-                            foregroundColor: AppTheme.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBusinessCard(Business business) {
+  Widget _buildBusinessCard(Business business, [List<RentalUnit>? businessUnits]) {
     final businessIcon = business.category.icon;
     final typeLabel = business.category.displayName;
+    final itemCount = businessUnits?.length ?? 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -916,9 +547,9 @@ class _BrowseScreenState extends State<BrowseScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Text(
-                      'View Catalogue',
-                      style: TextStyle(
+                    Text(
+                      itemCount > 0 ? '$itemCount items • View Catalogue' : 'View Catalogue',
+                      style: const TextStyle(
                         fontSize: 12,
                         color: AppTheme.brandColor,
                         fontWeight: FontWeight.w600,
