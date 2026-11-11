@@ -37,6 +37,10 @@ dist/
 Thumbs.db
 desktop.ini
 
+# ── Binary Packages & Builds ──────────────────────────
+*.apk
+Back2Kasi.apk
+
 # ── Logs ──────────────────────────────────────────────
 *.log
 logs/
