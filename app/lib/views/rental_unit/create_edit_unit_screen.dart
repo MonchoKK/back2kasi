@@ -571,36 +571,51 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    const Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _isPriceOnRequest = !_isPriceOnRequest;
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 4),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(
-                                          'Price on Request / Custom Quote',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppTheme.textPrimaryColor,
+                                        const Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Price on Request / Custom Quote',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppTheme.textPrimaryColor,
+                                                ),
+                                              ),
+                                              SizedBox(height: 2),
+                                              Text(
+                                                'Customer will discuss pricing on WhatsApp',
+                                                style: TextStyle(fontSize: 11, color: AppTheme.textSecondaryColor),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                        Text(
-                                          'Customer will discuss pricing on WhatsApp',
-                                          style: TextStyle(fontSize: 11, color: AppTheme.textSecondaryColor),
+                                        const SizedBox(width: 8),
+                                        Switch.adaptive(
+                                          value: _isPriceOnRequest,
+                                          activeColor: AppTheme.brandColor,
+                                          onChanged: (val) {
+                                            setState(() {
+                                              _isPriceOnRequest = val;
+                                            });
+                                          },
                                         ),
                                       ],
                                     ),
-                                    Switch(
-                                      value: _isPriceOnRequest,
-                                      activeColor: AppTheme.brandColor,
-                                      onChanged: (val) {
-                                        setState(() {
-                                          _isPriceOnRequest = val;
-                                        });
-                                      },
-                                    ),
-                                  ],
+                                  ),
                                 ),
                                 if (!_isPriceOnRequest) ...[
                                   const SizedBox(height: 12),

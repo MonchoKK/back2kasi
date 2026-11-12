@@ -312,9 +312,9 @@ class _RentalUnitDetailScreenState extends State<RentalUnitDetailScreen> {
                   const SizedBox(height: 24),
 
                   // Description
-                  const Text(
-                    'About this rental',
-                    style: TextStyle(
+                  Text(
+                    widget.unit.isProduct ? 'About this product' : 'About this service',
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: AppTheme.textPrimaryColor,
@@ -419,21 +419,23 @@ class _RentalUnitDetailScreenState extends State<RentalUnitDetailScreen> {
                       border: Border.all(color: AppTheme.borderColor, width: 1.0),
                       boxShadow: AppTheme.cardShadow,
                     ),
-                    child: const Column(
+                    child: Column(
                       children: [
-                        _TrustItem(
+                        const _TrustItem(
                           icon: Icons.verified_user_outlined,
                           text: 'Direct communication with verified local township business owner.',
                         ),
-                        SizedBox(height: 12),
-                        _TrustItem(
+                        const SizedBox(height: 12),
+                        const _TrustItem(
                           icon: Icons.chat_bubble_outline_rounded,
                           text: 'Fast WhatsApp response for quotes, availability, and event dates.',
                         ),
-                        SizedBox(height: 12),
+                        const SizedBox(height: 12),
                         _TrustItem(
-                          icon: Icons.local_shipping_outlined,
-                          text: 'Delivery, positioning, and site servicing arranged directly with provider.',
+                          icon: widget.unit.isProduct ? Icons.local_mall_outlined : Icons.handyman_outlined,
+                          text: widget.unit.isProduct
+                              ? 'Collection or delivery arranged directly with the local provider.'
+                              : 'Scheduling, location, and servicing arranged directly with provider.',
                         ),
                       ],
                     ),

@@ -266,10 +266,10 @@ businessRoutes.post('/', requireAuth, async (c) => {
     }
   }
 
-  const resolvedCategory = (category || businessType || 'EVENTS_RENTALS').toString().trim();
-  if (!VALID_BUSINESS_TYPES.includes(resolvedCategory)) {
-    fieldErrors.category = `Invalid category. Must be one of: ${VALID_BUSINESS_CATEGORIES.join(', ')}`;
-  }
+  const rawCategory = (category || businessType || 'EVENTS_RENTALS').toString().trim().toUpperCase();
+  const canonicalCategory = (rawCategory === 'TOILET_RENTAL' || rawCategory === 'COLD_ROOM_RENTAL')
+    ? 'EVENTS_RENTALS'
+    : (VALID_BUSINESS_CATEGORIES.includes(rawCategory) ? rawCategory : 'EVENTS_RENTALS');
 
   let normalizedWhatsappNumber: string | null = null;
   if (whatsappNumber !== undefined && whatsappNumber !== null && String(whatsappNumber).trim() !== '') {
@@ -302,8 +302,8 @@ businessRoutes.post('/', requireAuth, async (c) => {
       description?.trim() || null,
       address.trim(),
       normalizedPhone,
-      resolvedCategory,
-      resolvedCategory,
+      canonicalCategory,
+      canonicalCategory,
       currentUser.id,
       normalizedWhatsappNumber,
       isEnabled,
@@ -384,10 +384,10 @@ businessRoutes.put('/:id', requireAuth, async (c) => {
     }
   }
 
-  const resolvedCategory = (category || businessType || existing.category || existing.business_type || 'EVENTS_RENTALS').toString().trim();
-  if (!VALID_BUSINESS_TYPES.includes(resolvedCategory)) {
-    fieldErrors.category = `Invalid category. Must be one of: ${VALID_BUSINESS_CATEGORIES.join(', ')}`;
-  }
+  const rawCategory = (category || businessType || existing.category || existing.business_type || 'EVENTS_RENTALS').toString().trim().toUpperCase();
+  const canonicalCategory = (rawCategory === 'TOILET_RENTAL' || rawCategory === 'COLD_ROOM_RENTAL')
+    ? 'EVENTS_RENTALS'
+    : (VALID_BUSINESS_CATEGORIES.includes(rawCategory) ? rawCategory : 'EVENTS_RENTALS');
 
   let normalizedWhatsappNumber = existing.whatsapp_number ?? null;
   if (whatsappNumber !== undefined) {
@@ -428,8 +428,8 @@ businessRoutes.put('/:id', requireAuth, async (c) => {
       description?.trim() || null,
       address.trim(),
       normalizedPhone,
-      resolvedCategory,
-      resolvedCategory,
+      canonicalCategory,
+      canonicalCategory,
       normalizedWhatsappNumber,
       isEnabled,
       message,
