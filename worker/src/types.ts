@@ -30,7 +30,7 @@ export type Role = 'USER' | 'ADMIN';
 
 export interface Env {
   DB: D1Database;
-  IMAGES_BUCKET: R2Bucket;
+  IMAGES_BUCKET?: R2Bucket;
   JWT_SECRET?: string;
   DEFAULT_JWT_SECRET?: string;
   JWT_EXPIRATION_SECONDS?: string;
@@ -121,6 +121,7 @@ export interface RentalUnitImageRow {
   file_size: number;
   is_primary: number;
   display_order: number;
+  image_data?: string | null;
   created_at: string;
   updated_at: string;
 }

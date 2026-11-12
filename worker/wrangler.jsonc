@@ -12,12 +12,6 @@
       "migrations_dir": "migrations"
     }
   ],
-  "r2_buckets": [
-    {
-      "binding": "IMAGES_BUCKET",
-      "bucket_name": "back2kasi-images"
-    }
-  ],
   "vars": {
     "JWT_EXPIRATION_SECONDS": "86400",
     "DEFAULT_JWT_SECRET": "back2kasi-jwt-secret-free-tier-2026-key"

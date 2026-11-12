@@ -34,6 +34,17 @@ const VALID_UNIT_STATUSES: RentalUnitStatus[] = [
   'UNDER_MAINTENANCE',
 ];
 
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
+  }
+  return btoa(binary);
+}
+
 function toImageResponse(row: RentalUnitImageRow, origin: string): RentalUnitImageResponse {
   const fullUrl = row.image_url.startsWith('http')
     ? row.image_url
@@ -507,12 +518,21 @@ rentalUnitRoutes.post('/:id/images', requireAuth, async (c) => {
   const r2Key = `rental-units/${id}/${crypto.randomUUID()}.${ext}`;
   const arrayBuffer = await file.arrayBuffer();
 
-  // Store in R2 bucket
-  await c.env.IMAGES_BUCKET.put(r2Key, arrayBuffer, {
-    httpMetadata: {
-      contentType: mimeType,
-    },
-  });
+  // Try store in R2 bucket if configured and available
+  if (c.env.IMAGES_BUCKET) {
+    try {
+      await c.env.IMAGES_BUCKET.put(r2Key, arrayBuffer, {
+        httpMetadata: {
+          contentType: mimeType,
+        },
+      });
+    } catch (err) {
+      console.warn('R2 upload failed or bucket unavailable, falling back to D1 storage:', err);
+    }
+  }
+
+  // Convert to Base64 for resilient D1 direct storage
+  const base64Data = arrayBufferToBase64(arrayBuffer);
 
   const relativeUrl = `/api/v1/images/${r2Key}`;
   const isPrimaryRequested = formData.get('isPrimary') === 'true';
@@ -526,8 +546,8 @@ rentalUnitRoutes.post('/:id/images', requireAuth, async (c) => {
 
   const now = new Date().toISOString();
   const insertResult = await c.env.DB.prepare(
-    `INSERT INTO rental_unit_images (rental_unit_id, r2_key, image_url, content_type, file_size, is_primary, display_order, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO rental_unit_images (rental_unit_id, r2_key, image_url, content_type, file_size, is_primary, display_order, image_data, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
     .bind(
       id,
@@ -537,6 +557,7 @@ rentalUnitRoutes.post('/:id/images', requireAuth, async (c) => {
       file.size,
       shouldBePrimary ? 1 : 0,
       currentCount,
+      base64Data,
       now,
       now
     )
@@ -636,11 +657,13 @@ rentalUnitRoutes.delete('/:id/images/:imageId', requireAuth, async (c) => {
     throw new ResourceNotFoundError(`Image not found with id: ${imageId} for unit: ${id}`);
   }
 
-  // Delete from R2
-  try {
-    await c.env.IMAGES_BUCKET.delete(targetImage.r2_key);
-  } catch (err) {
-    console.error('Failed to delete object from R2:', err);
+  // Delete from R2 if bucket bound
+  if (c.env.IMAGES_BUCKET) {
+    try {
+      await c.env.IMAGES_BUCKET.delete(targetImage.r2_key);
+    } catch (err) {
+      console.error('Failed to delete object from R2:', err);
+    }
   }
 
   // Delete from D1
