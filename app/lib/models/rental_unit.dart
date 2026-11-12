@@ -108,10 +108,10 @@ class RentalUnit {
       itemType: resolvedItemType,
       capacity: (json['capacity'] as int?) ?? 1,
       rentalUnitType: RentalUnitType.values.firstWhere(
-        (e) => e.toString().split('.').last == json['rentalUnitType'],
+        (e) => e.toString().split('.').last.toUpperCase() == (json['rentalUnitType'] ?? '').toString().toUpperCase(),
         orElse: () => resolvedItemType == ItemType.PRODUCT
             ? RentalUnitType.GENERAL_PRODUCT
-            : RentalUnitType.STANDARD_TOILET,
+            : RentalUnitType.GENERAL_SERVICE,
       ),
       status: RentalUnitStatus.values.firstWhere(
         (e) => e.toString().split('.').last == json['status'],

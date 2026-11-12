@@ -228,7 +228,13 @@ rentalUnitRoutes.post('/', requireAuth, async (c) => {
 
   const effectiveItemType = itemType === 'PRODUCT' ? 'PRODUCT' : 'SERVICE';
   const effectiveCapacity = capacity !== undefined && !isNaN(Number(capacity)) ? Number(capacity) : 1;
-  const effectiveUnitType = rentalUnitType || (effectiveItemType === 'PRODUCT' ? 'GENERAL_PRODUCT' : 'GENERAL_SERVICE');
+  const rawUnitType = (rentalUnitType || (effectiveItemType === 'PRODUCT' ? 'GENERAL_PRODUCT' : 'GENERAL_SERVICE'))
+    .toString()
+    .trim()
+    .toUpperCase();
+  const effectiveUnitType = VALID_UNIT_TYPES.includes(rawUnitType)
+    ? rawUnitType
+    : (effectiveItemType === 'PRODUCT' ? 'GENERAL_PRODUCT' : 'GENERAL_SERVICE');
   const effectivePriceUnit = priceUnit !== undefined ? (priceUnit?.trim() || null) : (effectiveItemType === 'PRODUCT' ? null : 'per day');
 
   if (Object.keys(fieldErrors).length > 0) {
@@ -347,7 +353,13 @@ rentalUnitRoutes.put('/:id', requireAuth, async (c) => {
 
   const effectiveItemType = itemType !== undefined ? (itemType === 'PRODUCT' ? 'PRODUCT' : 'SERVICE') : (unit.item_type || 'SERVICE');
   const effectiveCapacity = capacity !== undefined && !isNaN(Number(capacity)) ? Number(capacity) : (unit.capacity ?? 1);
-  const effectiveUnitType = rentalUnitType || unit.rental_unit_type || (effectiveItemType === 'PRODUCT' ? 'GENERAL_PRODUCT' : 'GENERAL_SERVICE');
+  const rawUnitType = (rentalUnitType || unit.rental_unit_type || (effectiveItemType === 'PRODUCT' ? 'GENERAL_PRODUCT' : 'GENERAL_SERVICE'))
+    .toString()
+    .trim()
+    .toUpperCase();
+  const effectiveUnitType = VALID_UNIT_TYPES.includes(rawUnitType)
+    ? rawUnitType
+    : (effectiveItemType === 'PRODUCT' ? 'GENERAL_PRODUCT' : 'GENERAL_SERVICE');
   const effectivePriceUnit = priceUnit !== undefined ? (priceUnit?.trim() || null) : (unit.price_unit ?? null);
   const effectiveStatus = status || unit.status || 'AVAILABLE';
 

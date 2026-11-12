@@ -69,3 +69,4 @@ class AuthenticatedHttpClient extends http.BaseClient {
     super.close();
   }
 }
+
