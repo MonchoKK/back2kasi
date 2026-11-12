@@ -34,6 +34,7 @@ export interface Env {
   JWT_SECRET?: string;
   DEFAULT_JWT_SECRET?: string;
   JWT_EXPIRATION_SECONDS?: string;
+  REFRESH_TOKEN_EXPIRATION_DAYS?: string;
 }
 
 export interface AuthUser {
@@ -60,6 +61,18 @@ export interface UserRow {
   password: string;
   phone_number: string;
   role: Role;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SessionRow {
+  id: number;
+  user_id: number;
+  refresh_token_hash: string;
+  user_agent: string | null;
+  ip_address: string | null;
+  is_revoked: number;
+  expires_at: string;
   created_at: string;
   updated_at: string;
 }
@@ -128,8 +141,26 @@ export interface BookingRow {
 // API Outbound DTOs
 export interface AuthResponse {
   token: string;
+  refreshToken?: string;
   tokenType: string;
   expiresIn: number;
+  user?: {
+    id: number;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: Role;
+  };
+}
+
+export interface SessionResponse {
+  id: number;
+  userAgent: string | null;
+  ipAddress: string | null;
+  isRevoked: boolean;
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface BusinessResponse {

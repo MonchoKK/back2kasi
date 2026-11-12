@@ -78,3 +78,4 @@ $masterBmp.Dispose()
 $src.Dispose()
 
 Write-Host "User's Marketplace logo applied to all launcher mipmaps and web icons successfully!"
+

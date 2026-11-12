@@ -8,7 +8,8 @@
     "deploy": "wrangler deploy",
     "migrate:local": "wrangler d1 migrations apply back2kasi-db --local",
     "migrate:remote": "wrangler d1 migrations apply back2kasi-db --remote",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "esbuild test/sessions.test.ts --bundle --platform=node --format=esm --outfile=test/sessions.bundle.mjs --external:node:test --external:node:assert --external:node:assert/strict --external:node:sqlite --external:bcryptjs && node --test test/sessions.bundle.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

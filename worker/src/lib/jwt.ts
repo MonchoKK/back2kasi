@@ -6,7 +6,7 @@ export function getJwtSecret(env: Env): string {
 }
 
 export function getJwtExpirationSeconds(env: Env): number {
-  return env.JWT_EXPIRATION_SECONDS ? parseInt(env.JWT_EXPIRATION_SECONDS, 10) : 86400;
+  return env.JWT_EXPIRATION_SECONDS ? parseInt(env.JWT_EXPIRATION_SECONDS, 10) : 3600;
 }
 
 export async function generateToken(

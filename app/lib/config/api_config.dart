@@ -48,6 +48,10 @@ class ApiConfig {
   // --- Auth endpoints ---
   static String get register => '$baseUrl/api/users/register';
   static String get login => '$baseUrl/api/users/login';
+  static String get refresh => '$baseUrl/api/users/refresh';
+  static String get logout => '$baseUrl/api/users/logout';
+  static String get sessions => '$baseUrl/api/users/sessions';
+  static String get revokeAllSessions => '$baseUrl/api/users/sessions/revoke-all';
 
   // --- Resource endpoints ---
   static String get businesses => '$baseUrl/api/v1/businesses';

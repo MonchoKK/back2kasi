@@ -15,6 +15,7 @@
 **/node_modules/
 **/.wrangler/
 dist/
+*.bundle.mjs
 
 
 # ── Maven build output ────────────────────────────────
@@ -40,6 +41,7 @@ desktop.ini
 # ── Binary Packages & Builds ──────────────────────────
 *.apk
 Back2Kasi.apk
+*.idsig
 
 # ── Logs ──────────────────────────────────────────────
 *.log
