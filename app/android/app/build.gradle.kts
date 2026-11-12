@@ -53,6 +53,8 @@ android {
                 }
                 storeFile = resolvedStoreFile
                 storePassword = storePasswordProp
+                enableV1Signing = true
+                enableV2Signing = true
             }
         }
     }
