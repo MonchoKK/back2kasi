@@ -1,11 +1,11 @@
 {
-    "name": "back2kasi_app",
-    "short_name": "back2kasi_app",
+    "name": "Back2Kasi - Township Marketplace",
+    "short_name": "Back2Kasi",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FBF8ED",
+    "theme_color": "#059669",
+    "description": "Township marketplace connecting customers with local businesses, products, and services.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
