@@ -8,3 +8,4 @@ ALTER TABLE businesses ADD COLUMN is_suspended INTEGER NOT NULL DEFAULT 0;
 
 -- 2. Index for optimal filtering in public marketplace discovery queries
 CREATE INDEX IF NOT EXISTS idx_businesses_is_suspended ON businesses(is_suspended);
+
