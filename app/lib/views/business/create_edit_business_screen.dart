@@ -73,8 +73,11 @@ class _CreateEditBusinessScreenState extends State<CreateEditBusinessScreen> {
       _errorMessage = null;
     });
 
-    final token = context.read<AuthService>().token;
-    if (token == null) return;
+    final token = await context.read<AuthService>().getValidToken();
+    if (token == null) {
+      if (mounted) setState(() => _errorMessage = 'Session expired. Please log in again.');
+      return;
+    }
 
     final whatsappNum = _whatsappEnabled && _whatsappController.text.trim().isNotEmpty
         ? _whatsappController.text.trim()

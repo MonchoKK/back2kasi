@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import '../config/api_config.dart';
 import '../models/rental_unit.dart';
 import '../models/rental_unit_image.dart';
@@ -280,8 +281,22 @@ class RentalUnitProvider extends ChangeNotifier {
         Uri.parse(ApiConfig.rentalUnitImages(unitId)),
       );
 
+      MediaType contentType = MediaType('image', 'jpeg');
+      final lower = filePath.toLowerCase();
+      if (lower.endsWith('.png')) {
+        contentType = MediaType('image', 'png');
+      } else if (lower.endsWith('.webp')) {
+        contentType = MediaType('image', 'webp');
+      } else {
+        contentType = MediaType('image', 'jpeg');
+      }
+
       request.headers['Authorization'] = 'Bearer $token';
-      request.files.add(await http.MultipartFile.fromPath('image', filePath));
+      request.files.add(await http.MultipartFile.fromPath(
+        'image',
+        filePath,
+        contentType: contentType,
+      ));
       if (isPrimary) {
         request.fields['isPrimary'] = 'true';
       }
@@ -321,8 +336,19 @@ class RentalUnitProvider extends ChangeNotifier {
         notifyListeners();
         return newImage;
       } else {
-        final err = jsonDecode(responseBody);
-        _errorMessage = err['message'] ?? 'Failed to upload photo';
+        String msg = 'Failed to upload photo';
+        try {
+          final err = jsonDecode(responseBody);
+          if (err is Map<String, dynamic>) {
+            if (err['fieldErrors'] != null && err['fieldErrors'] is Map) {
+              final Map<String, dynamic> fe = err['fieldErrors'];
+              msg = fe.values.join(', ');
+            } else if (err['message'] != null) {
+              msg = err['message'];
+            }
+          }
+        } catch (_) {}
+        _errorMessage = msg;
         throw Exception(_errorMessage);
       }
     } catch (e) {

@@ -505,15 +505,6 @@ rentalUnitRoutes.post('/:id/images', requireAuth, async (c) => {
     throw new ValidationError({ image: 'Image file is required' });
   }
 
-  // Validate MIME type
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-  const mimeType = file.type.toLowerCase();
-  if (!allowedTypes.includes(mimeType)) {
-    throw new ValidationError({
-      image: 'Only JPEG, PNG and WebP images are allowed. Received: ' + file.type,
-    });
-  }
-
   // Validate size: 5MB
   const MAX_SIZE = 5 * 1024 * 1024;
   if (file.size > MAX_SIZE) {
@@ -522,13 +513,38 @@ rentalUnitRoutes.post('/:id/images', requireAuth, async (c) => {
     });
   }
 
-  // Extension
+  const arrayBuffer = await file.arrayBuffer();
+  const header = new Uint8Array(arrayBuffer.slice(0, 12));
+
+  // Determine MIME type with magic byte and filename detection
+  const rawMime = (file.type || '').toLowerCase();
+  const fileName = (file.name || '').toLowerCase();
+
+  const isJpeg = header.length >= 3 && header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF;
+  const isPng = header.length >= 4 && header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47;
+  const isWebp = header.length >= 12 &&
+    header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46 &&
+    header[8] === 0x57 && header[9] === 0x45 && header[10] === 0x42 && header[11] === 0x50;
+
+  let mimeType = '';
   let ext = 'jpg';
-  if (mimeType === 'image/png') ext = 'png';
-  else if (mimeType === 'image/webp') ext = 'webp';
+
+  if (isJpeg || rawMime === 'image/jpeg' || rawMime === 'image/jpg' || rawMime === 'image/pjpeg' || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
+    mimeType = 'image/jpeg';
+    ext = 'jpg';
+  } else if (isPng || rawMime === 'image/png' || rawMime === 'image/x-png' || fileName.endsWith('.png')) {
+    mimeType = 'image/png';
+    ext = 'png';
+  } else if (isWebp || rawMime === 'image/webp' || fileName.endsWith('.webp')) {
+    mimeType = 'image/webp';
+    ext = 'webp';
+  } else {
+    throw new ValidationError({
+      image: 'Only JPEG, PNG and WebP images are allowed. Received: ' + (file.type || 'unknown format'),
+    });
+  }
 
   const r2Key = `rental-units/${id}/${crypto.randomUUID()}.${ext}`;
-  const arrayBuffer = await file.arrayBuffer();
 
   // Try store in R2 bucket if configured and available
   if (c.env.IMAGES_BUCKET) {

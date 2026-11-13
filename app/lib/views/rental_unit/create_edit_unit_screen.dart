@@ -73,8 +73,11 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
   }
 
   Future<void> _handleRemoteImageAdded(File file, bool isPrimary) async {
-    final token = context.read<AuthService>().token;
-    if (token == null || widget.unit == null) return;
+    final token = await context.read<AuthService>().getValidToken();
+    if (token == null || widget.unit == null) {
+      if (mounted) setState(() => _errorMessage = 'Session expired. Please log in again.');
+      return;
+    }
 
     setState(() {
       _isUploadingPhoto = true;
@@ -129,8 +132,11 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
   }
 
   Future<void> _handleRemoteSetPrimary(RentalUnitImage image) async {
-    final token = context.read<AuthService>().token;
-    if (token == null || widget.unit == null) return;
+    final token = await context.read<AuthService>().getValidToken();
+    if (token == null || widget.unit == null) {
+      if (mounted) setState(() => _errorMessage = 'Session expired. Please log in again.');
+      return;
+    }
 
     setState(() {
       _isUploadingPhoto = true;
@@ -181,8 +187,11 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
   }
 
   Future<void> _handleRemoteDelete(RentalUnitImage image) async {
-    final token = context.read<AuthService>().token;
-    if (token == null || widget.unit == null) return;
+    final token = await context.read<AuthService>().getValidToken();
+    if (token == null || widget.unit == null) {
+      if (mounted) setState(() => _errorMessage = 'Session expired. Please log in again.');
+      return;
+    }
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -260,8 +269,11 @@ class _CreateEditUnitScreenState extends State<CreateEditUnitScreen> {
       _errorMessage = null;
     });
 
-    final token = context.read<AuthService>().token;
-    if (token == null) return;
+    final token = await context.read<AuthService>().getValidToken();
+    if (token == null) {
+      if (mounted) setState(() => _errorMessage = 'Session expired. Please log in again.');
+      return;
+    }
 
     try {
       final provider = context.read<RentalUnitProvider>();

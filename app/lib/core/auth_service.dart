@@ -130,12 +130,18 @@ class AuthService extends ChangeNotifier {
         }
       } else if (storedToken != null && storedToken.isNotEmpty) {
         // Legacy fallback: single token without refresh token
-        _token = storedToken;
-        _userId = storedUserId ?? '1';
-        _userEmail = storedUserEmail ?? '';
-        _userName = storedUserName;
-        _userRole = storedUserRole;
-        _expiresAt = storedExpiresAt;
+        // Check if legacy token is expired; if so, clear it so user is not stuck with an invalid session
+        if (storedExpiresAt != null && DateTime.now().isAfter(storedExpiresAt)) {
+          debugPrint('AuthService: Stored legacy token is expired, clearing local session');
+          await _clearLocalSession();
+        } else {
+          _token = storedToken;
+          _userId = storedUserId ?? '1';
+          _userEmail = storedUserEmail ?? '';
+          _userName = storedUserName;
+          _userRole = storedUserRole;
+          _expiresAt = storedExpiresAt;
+        }
       }
     } catch (e) {
       debugPrint('AuthService: tryAutoLogin error: $e');
